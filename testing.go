@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/muesli/cache2go"
 )
 
@@ -46,7 +45,7 @@ func setup() (
 }
 
 func loadTestData() (data TestData, err error) {
-	err = godotenv.Load()
+	err = loadDotEnv()
 	if err != nil {
 		return
 	}

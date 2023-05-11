@@ -60,8 +60,18 @@ func arrayContains[T comparable](arr []T, item T) bool {
 	return false
 }
 
+func loadDotEnv() (err error) {
+	if _, err := os.Stat(".env"); err == nil {
+		err = godotenv.Load()
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
 func LoadEnv() (env Environment, err error) {
-	err = godotenv.Load()
+	err = loadDotEnv()
 	if err != nil {
 		return
 	}
