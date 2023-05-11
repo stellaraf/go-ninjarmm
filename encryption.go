@@ -1,4 +1,4 @@
-package main
+package ninjarmm
 
 import (
 	"crypto/aes"
