@@ -747,13 +747,13 @@ type DeviceVolume struct {
 }
 
 type Device struct {
-	ID             json.Number `json:"id"`
-	OrganizationID json.Number `json:"organizationId"`
-	LocationID     json.Number `json:"locationId"`
+	ID             int         `json:"id"`
+	OrganizationID int         `json:"organizationId"`
+	LocationID     int         `json:"locationId"`
 	NodeClass      string      `json:"nodeClass"`
-	NodeRoleId     json.Number `json:"nodeRoleId"`
-	RolePolicyID   json.Number `json:"rolePolicyId"`
-	PolicyID       json.Number `json:"policyId"`
+	NodeRoleId     int         `json:"nodeRoleId"`
+	RolePolicyID   int         `json:"rolePolicyId"`
+	PolicyID       int         `json:"policyId"`
 	ApprovalStatus string      `json:"approvalStatus"`
 	Offline        bool        `json:"offline"`
 	DisplayName    string      `json:"displayName"`
@@ -785,7 +785,7 @@ type OSPatchReport struct {
 	Status    string      `json:"status"`
 	Type      string      `json:"type"`
 	KBNumber  string      `json:"kbNumber"`
-	DeviceID  json.Number `json:"deviceId"`
+	DeviceID  int         `json:"deviceId"`
 	Timestamp json.Number `json:"timestamp"`
 }
 
@@ -805,9 +805,9 @@ type OSPatchReportDetail struct {
 }
 
 type WebhookBase struct {
-	ID              json.Number `json:"id"`
+	ID              int         `json:"id"`
 	ActivityTime    json.Number `json:"activityTime"`
-	DeviceID        json.Number `json:"deviceId"`
+	DeviceID        int         `json:"deviceId"`
 	Severity        string      `json:"severity"`
 	Priority        string      `json:"priority"`
 	SeriesUID       string      `json:"seriesUid"`

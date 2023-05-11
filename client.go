@@ -69,13 +69,8 @@ func (client *NinjaRMMClient) OSPatchReport(orgId int) (patchReport []OSPatchRep
 	}
 	devicesToCollect := []int{}
 	for _, report := range reports.Results {
-		_id, err := report.DeviceID.Int64()
-		if err != nil {
-			return patchReport, err
-		}
-		id := int(_id)
-		if !arrayContains(devicesToCollect, id) {
-			devicesToCollect = append(devicesToCollect, id)
+		if !arrayContains(devicesToCollect, report.DeviceID) {
+			devicesToCollect = append(devicesToCollect, report.DeviceID)
 		}
 	}
 	sort.Ints(devicesToCollect)
@@ -92,14 +87,10 @@ func (client *NinjaRMMClient) OSPatchReport(orgId int) (patchReport []OSPatchRep
 		return
 	}
 	for _, report := range reports.Results {
-		_id, err := report.DeviceID.Int64()
-		if err != nil {
-			return patchReport, err
-		}
-		id := int(_id)
-		device, hasKey := deviceMap[id]
+
+		device, hasKey := deviceMap[report.DeviceID]
 		if !hasKey {
-			err = fmt.Errorf("failed to get details for device '%d'", id)
+			err = fmt.Errorf("failed to get details for device '%d'", report.DeviceID)
 			return patchReport, err
 		}
 		result := OSPatchReportDetail{
