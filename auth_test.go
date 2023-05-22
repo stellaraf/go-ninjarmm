@@ -41,7 +41,7 @@ func Test_Auth(t *testing.T) {
 	})
 
 	t.Run("get refresh token", func(t *testing.T) {
-		var tokenType *string
+		var tokenType string
 		auth, err := initAuth()
 		assert.NoError(t, err)
 		assert.NotNil(t, auth)
@@ -49,12 +49,10 @@ func Test_Auth(t *testing.T) {
 		assert.NoError(t, err)
 		assert.IsType(t, tokenType, token)
 		result := "failure"
-		if token == nil {
-			result = "<nil>"
-		} else if *token == "" {
-			result = "none"
+		if token == "" {
+			result = ""
 		} else {
-			result = *token
+			result = token
 		}
 		assert.NotEqual(t, "failure", result)
 		t.Logf("refresh token: %s", result)

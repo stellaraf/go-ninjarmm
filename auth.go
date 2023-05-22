@@ -35,17 +35,17 @@ type NinjaRMMAuth struct {
 	httpClient              *resty.Client
 }
 
-func (auth *NinjaRMMAuth) GetRefreshToken() (token *string, err error) {
+func (auth *NinjaRMMAuth) GetRefreshToken() (token string, err error) {
 	rawToken, err := auth.getRefreshTokenCallback()
 	if err != nil {
 		return
 	}
 	if rawToken != "" && auth.encryption {
 		decrypted := decrypt(auth.encryptionPassphrase, rawToken)
-		token = &decrypted
+		token = decrypted
 		return
 	}
-	return nil, nil
+	return "", nil
 }
 
 func (auth *NinjaRMMAuth) GetNewToken() (token ninjaRMMAccessToken, err error) {
@@ -57,9 +57,9 @@ func (auth *NinjaRMMAuth) GetNewToken() (token ninjaRMMAccessToken, err error) {
 	q.Set("client_id", auth.clientID)
 	q.Set("client_secret", auth.clientSecret)
 
-	if refreshToken != nil && *refreshToken != "" {
+	if refreshToken != "" {
 		q.Set("grant_type", "refresh_token")
-		q.Set("refresh_token", *refreshToken)
+		q.Set("refresh_token", refreshToken)
 	} else {
 		q.Set("grant_type", "client_credentials")
 		q.Set("scope", "monitoring management control offline_access")
