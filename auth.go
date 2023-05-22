@@ -10,7 +10,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-type CachedTokenCallback func() (*string, error)
+type CachedTokenCallback func() (string, error)
 
 type SetTokenCallback func(token string, expiresIn float64) error
 
@@ -40,8 +40,8 @@ func (auth *NinjaRMMAuth) GetRefreshToken() (token *string, err error) {
 	if err != nil {
 		return
 	}
-	if rawToken != nil && auth.encryption {
-		decrypted := decrypt(auth.encryptionPassphrase, *rawToken)
+	if rawToken != "" && auth.encryption {
+		decrypted := decrypt(auth.encryptionPassphrase, rawToken)
 		token = &decrypted
 		return
 	}
@@ -100,7 +100,7 @@ func (auth *NinjaRMMAuth) GetAccessToken() (token string, err error) {
 	if err != nil {
 		return
 	}
-	if cachedToken == nil {
+	if cachedToken == "" {
 		newToken, err := auth.GetNewToken()
 		if err != nil {
 			return "", err
@@ -112,9 +112,9 @@ func (auth *NinjaRMMAuth) GetAccessToken() (token string, err error) {
 		return newToken.AccessToken, nil
 	}
 	if auth.encryption {
-		return decrypt(auth.encryptionPassphrase, *cachedToken), nil
+		return decrypt(auth.encryptionPassphrase, cachedToken), nil
 	}
-	return *cachedToken, nil
+	return cachedToken, nil
 }
 
 func (auth *NinjaRMMAuth) CacheNewToken(token ninjaRMMAccessToken) (err error) {
