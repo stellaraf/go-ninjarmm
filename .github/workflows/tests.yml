@@ -2,18 +2,18 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  tests:
-    name: Tests
-    runs-on: ubuntu-latest
-    env:
-      NINJARMM_CLIENT_ID: '${{ secrets.NINJARMM_CLIENT_ID }}'
-      NINJARMM_CLIENT_SECRET: '${{ secrets.NINJARMM_CLIENT_SECRET }}'
-      NINJARMM_ENCRYPTION_PASSPHRASE: '${{ secrets.NINJARMM_ENCRYPTION_PASSPHRASE }}'
-      NINJARMM_BASE_URL: '${{ secrets.NINJARMM_BASE_URL }}'
-      NINJARMM_TEST_DATA: '${{ secrets.NINJARMM_TEST_DATA }}'
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: '>=1.19.3'
-      - run: go test
+    tests:
+        name: Tests
+        runs-on: ubuntu-latest
+        env:
+            CLIENT_ID: "${{ secrets.NINJARMM_CLIENT_ID }}"
+            CLIENT_SECRET: "${{ secrets.NINJARMM_CLIENT_SECRET }}"
+            ENCRYPTION_PASSPHRASE: "${{ secrets.NINJARMM_ENCRYPTION_PASSPHRASE }}"
+            BASE_URL: "${{ secrets.NINJARMM_BASE_URL }}"
+            TEST_DATA: "${{ secrets.NINJARMM_TEST_DATA }}"
+        steps:
+            - uses: actions/checkout@v3
+            - uses: actions/setup-go@v4
+              with:
+                  go-version: ">=1.19.3"
+            - run: go test
