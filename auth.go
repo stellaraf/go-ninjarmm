@@ -22,7 +22,7 @@ type ninjaRMMAccessToken struct {
 	Scope        string `json:"scope"`
 }
 
-type NinjaRMMAuth struct {
+type authT struct {
 	baseURL                 string
 	clientID                string
 	clientSecret            string
@@ -35,7 +35,7 @@ type NinjaRMMAuth struct {
 	httpClient              *resty.Client
 }
 
-func (auth *NinjaRMMAuth) GetRefreshToken() (token string, err error) {
+func (auth *authT) GetRefreshToken() (token string, err error) {
 	rawToken, err := auth.getRefreshTokenCallback()
 	if err != nil {
 		return
@@ -48,7 +48,7 @@ func (auth *NinjaRMMAuth) GetRefreshToken() (token string, err error) {
 	return "", nil
 }
 
-func (auth *NinjaRMMAuth) GetNewToken() (token ninjaRMMAccessToken, err error) {
+func (auth *authT) GetNewToken() (token ninjaRMMAccessToken, err error) {
 	refreshToken, err := auth.GetRefreshToken()
 	if err != nil {
 		return
@@ -95,7 +95,7 @@ func (auth *NinjaRMMAuth) GetNewToken() (token ninjaRMMAccessToken, err error) {
 	return
 }
 
-func (auth *NinjaRMMAuth) GetAccessToken() (token string, err error) {
+func (auth *authT) GetAccessToken() (token string, err error) {
 	cachedToken, err := auth.getAccessTokenCallback()
 	if err != nil {
 		return
@@ -117,7 +117,7 @@ func (auth *NinjaRMMAuth) GetAccessToken() (token string, err error) {
 	return cachedToken, nil
 }
 
-func (auth *NinjaRMMAuth) CacheNewToken(token ninjaRMMAccessToken) (err error) {
+func (auth *authT) CacheNewToken(token ninjaRMMAccessToken) (err error) {
 	err = auth.SetAccessToken(token)
 	if err != nil {
 		return
@@ -126,9 +126,9 @@ func (auth *NinjaRMMAuth) CacheNewToken(token ninjaRMMAccessToken) (err error) {
 	return
 }
 
-func (auth *NinjaRMMAuth) SetRefreshToken(value string) (err error) {
+func (auth *authT) SetRefreshToken(value string) (err error) {
 	expiresAt := time.Now()
-	expiresAt.AddDate(0, 0, 29)
+	expiresAt = expiresAt.AddDate(0, 0, 29)
 	now := time.Now()
 	expiresIn := math.Abs(float64(expiresAt.UnixMilli())-float64(now.UnixMilli())) / 1000
 	if auth.encryption {
@@ -140,7 +140,7 @@ func (auth *NinjaRMMAuth) SetRefreshToken(value string) (err error) {
 	return
 }
 
-func (auth *NinjaRMMAuth) SetAccessToken(token ninjaRMMAccessToken) (err error) {
+func (auth *authT) SetAccessToken(token ninjaRMMAccessToken) (err error) {
 	if auth.encryption {
 		encrypted := encrypt(token.AccessToken, auth.encryptionPassphrase)
 		auth.setAccessTokenCallback(encrypted, float64(token.ExpiresIn))
@@ -150,13 +150,13 @@ func (auth *NinjaRMMAuth) SetAccessToken(token ninjaRMMAccessToken) (err error) 
 	return
 }
 
-func createNinjaRMMAuth(
+func newAuth(
 	baseURL, clientID, clientSecret string,
 	encryption *string,
 	getAccessTokenCallback CachedTokenCallback,
 	setAccessTokenCallback SetTokenCallback,
 	getRefreshTokenCallback CachedTokenCallback,
-	setRefreshTokenCallback SetTokenCallback) (*NinjaRMMAuth, error) {
+	setRefreshTokenCallback SetTokenCallback) (*authT, error) {
 	var doEncrypt bool
 	passphrase := ""
 	if encryption == nil {
@@ -168,7 +168,7 @@ func createNinjaRMMAuth(
 	httpClient := resty.New()
 	httpClient.SetBaseURL(baseURL)
 	httpClient.SetHeader("user-agent", "go-ninjarmm")
-	auth := &NinjaRMMAuth{
+	auth := &authT{
 		baseURL:                 baseURL,
 		clientID:                clientID,
 		clientSecret:            clientSecret,

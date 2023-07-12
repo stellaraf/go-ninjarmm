@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initClient() (client *NinjaRMMClient, err error) {
-	env, err := LoadEnv()
+func initClient() (client *Client, err error) {
+	env, err := loadEnv()
 	if err != nil {
 		return
 	}
@@ -15,7 +15,7 @@ func initClient() (client *NinjaRMMClient, err error) {
 	if err != nil {
 		return
 	}
-	client, err = CreateNinjaRMMClient(
+	client, err = New(
 		env.BaseURL,
 		env.ClientID,
 		env.ClientSecret,
@@ -72,5 +72,23 @@ func Test_NinjaRMMClient(t *testing.T) {
 		data, err := client.OSPatchReport(testData.OrgID)
 		assert.NoError(t, err)
 		assert.IsType(t, []OSPatchReportDetail{}, data)
+	})
+	t.Run("org locations", func(t *testing.T) {
+		client, err := initClient()
+		assert.NoError(t, err)
+		assert.NotNil(t, client)
+		data, err := client.OrganizationLocations(testData.OrgID)
+		assert.NoError(t, err)
+		assert.IsType(t, []Location{}, data)
+		assert.True(t, len(data) > 0)
+	})
+	t.Run("location", func(t *testing.T) {
+		client, err := initClient()
+		assert.NoError(t, err)
+		assert.NotNil(t, client)
+		data, err := client.Location(testData.OrgID, testData.LocationID)
+		assert.NoError(t, err)
+		assert.IsType(t, &Location{}, data)
+		assert.Equal(t, testData.LocationID, data.ID)
 	})
 }

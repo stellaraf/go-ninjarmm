@@ -7,15 +7,16 @@ import (
 	"sort"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/stellaraf/go-utils"
 )
 
-type NinjaRMMClient struct {
-	auth       *NinjaRMMAuth
+type Client struct {
+	auth       *authT
 	baseURL    string
 	httpClient *resty.Client
 }
 
-func (client *NinjaRMMClient) handleResponse(response *resty.Response, data any) (err error) {
+func (client *Client) handleResponse(response *resty.Response, data any) (err error) {
 	err = checkForError(response)
 	if err != nil {
 		return
@@ -24,7 +25,33 @@ func (client *NinjaRMMClient) handleResponse(response *resty.Response, data any)
 	return
 }
 
-func (client *NinjaRMMClient) Organizations() (orgs []OrganizationSummary, err error) {
+func (client *Client) Location(orgID, locID int) (location *Location, err error) {
+	locations, err := client.OrganizationLocations(orgID)
+	if err != nil {
+		return
+	}
+	for _, loc := range locations {
+		if loc.ID == locID {
+			location = &loc
+			return
+		}
+	}
+	if location == nil {
+		err = fmt.Errorf("location with id '%d' not found in organization '%d'", locID, orgID)
+	}
+	return
+}
+
+func (client *Client) OrganizationLocations(orgID int) (locations []Location, err error) {
+	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d/locations", orgID))
+	if err != nil {
+		return
+	}
+	err = client.handleResponse(res, &locations)
+	return
+}
+
+func (client *Client) Organizations() (orgs []OrganizationSummary, err error) {
 	res, err := client.httpClient.R().Get("/api/v2/organizations")
 	if err != nil {
 		return
@@ -33,7 +60,7 @@ func (client *NinjaRMMClient) Organizations() (orgs []OrganizationSummary, err e
 	return
 }
 
-func (client *NinjaRMMClient) Organization(id int) (org Organization, err error) {
+func (client *Client) Organization(id int) (org Organization, err error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d", id))
 	if err != nil {
 		return
@@ -42,7 +69,7 @@ func (client *NinjaRMMClient) Organization(id int) (org Organization, err error)
 	return
 }
 
-func (client *NinjaRMMClient) Device(id int) (device DeviceDetails, err error) {
+func (client *Client) Device(id int) (device DeviceDetails, err error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/device/%d", id))
 	if err != nil {
 		return
@@ -51,7 +78,7 @@ func (client *NinjaRMMClient) Device(id int) (device DeviceDetails, err error) {
 	return
 }
 
-func (client *NinjaRMMClient) OSPatches(orgId int) (patchReport OSPatchReportQuery, err error) {
+func (client *Client) OSPatches(orgId int) (patchReport OSPatchReportQuery, err error) {
 	q := url.Values{}
 	q.Add("org", fmt.Sprintf("%d", orgId))
 	res, err := client.httpClient.R().SetQueryParam("df", q.Encode()).Get("/api/v2/queries/os-patches")
@@ -62,14 +89,14 @@ func (client *NinjaRMMClient) OSPatches(orgId int) (patchReport OSPatchReportQue
 	return
 }
 
-func (client *NinjaRMMClient) OSPatchReport(orgId int) (patchReport []OSPatchReportDetail, err error) {
+func (client *Client) OSPatchReport(orgId int) (patchReport []OSPatchReportDetail, err error) {
 	reports, err := client.OSPatches(orgId)
 	if err != nil {
 		return
 	}
 	devicesToCollect := []int{}
 	for _, report := range reports.Results {
-		if !arrayContains(devicesToCollect, report.DeviceID) {
+		if !utils.SliceContains(devicesToCollect, report.DeviceID) {
 			devicesToCollect = append(devicesToCollect, report.DeviceID)
 		}
 	}
@@ -108,7 +135,7 @@ func (client *NinjaRMMClient) OSPatchReport(orgId int) (patchReport []OSPatchRep
 	return
 }
 
-func (client *NinjaRMMClient) CreateOrganization(name string) (org Organization, err error) {
+func (client *Client) CreateOrganization(name string) (org Organization, err error) {
 	orgs, err := client.Organizations()
 	if err != nil {
 		return
@@ -133,15 +160,16 @@ func (client *NinjaRMMClient) CreateOrganization(name string) (org Organization,
 	return
 }
 
-func CreateNinjaRMMClient(
+// New creates a new NinjaRMMClient.
+func New(
 	baseURL, clientID, clientSecret string,
 	encryption *string,
 	getAccessTokenCallback CachedTokenCallback,
 	setAccessTokenCallback SetTokenCallback,
 	getRefreshTokenCallback CachedTokenCallback,
-	setRefreshTokenCallback SetTokenCallback) (client *NinjaRMMClient, err error) {
+	setRefreshTokenCallback SetTokenCallback) (client *Client, err error) {
 
-	auth, err := createNinjaRMMAuth(
+	auth, err := newAuth(
 		baseURL,
 		clientID,
 		clientSecret,
@@ -165,6 +193,6 @@ func CreateNinjaRMMClient(
 		return
 	}
 	httpClient.SetAuthToken(token)
-	client = &NinjaRMMClient{auth: auth, baseURL: baseURL, httpClient: httpClient}
+	client = &Client{auth: auth, baseURL: baseURL, httpClient: httpClient}
 	return
 }

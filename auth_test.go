@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initAuth() (auth *NinjaRMMAuth, err error) {
-	env, err := LoadEnv()
+func initAuth() (auth *authT, err error) {
+	env, err := loadEnv()
 	if err != nil {
 		return
 	}
@@ -15,7 +15,7 @@ func initAuth() (auth *NinjaRMMAuth, err error) {
 	if err != nil {
 		return
 	}
-	auth, err = createNinjaRMMAuth(
+	auth, err = newAuth(
 		env.BaseURL,
 		env.ClientID,
 		env.ClientSecret,

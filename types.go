@@ -18,17 +18,18 @@ type ninjaRMMRequestError struct {
 	IncidentID   string `json:"incidentId"`
 }
 
-type TestData struct {
-	OrgID    int `json:"orgId"`
-	DeviceID int `json:"deviceId"`
+type testDataT struct {
+	OrgID      int `json:"orgId"`
+	DeviceID   int `json:"deviceId"`
+	LocationID int `json:"locationId"`
 }
 
-type Environment struct {
-	ClientID             string
-	ClientSecret         string
-	BaseURL              string
-	EncryptionPassphrase string
-	TestData             string
+type environmentT struct {
+	ClientID             string `env:"CLIENT_ID"`
+	ClientSecret         string `env:"CLIENT_SECRET"`
+	BaseURL              string `env:"BASE_URL"`
+	EncryptionPassphrase string `env:"ENCRYPTION_PASSPHRASE"`
+	TestData             string `env:"TEST_DATA"`
 }
 
 const (
@@ -653,10 +654,8 @@ type OrganizationSettings struct {
 
 type Location struct {
 	BaseObject
-	Address     string      `json:"address,omitempty"`
-	Description string      `json:"description,omitempty"`
-	Tags        []string    `json:"tags"`
-	Fields      interface{} `json:"fields,omitempty"`
+	Address     string `json:"address,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 type Organization struct {

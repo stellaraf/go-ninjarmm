@@ -3,7 +3,6 @@ package ninjarmm
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/muesli/cache2go"
@@ -44,20 +43,19 @@ func setup() (
 	return getAccessToken, setAccessToken, getRefreshToken, setRefreshToken, nil
 }
 
-func loadTestData() (data TestData, err error) {
-	err = loadDotEnv()
+func loadTestData() (data testDataT, err error) {
+	env, err := loadEnv()
 	if err != nil {
 		return
 	}
-	rawData := os.Getenv("NINJARMM_TEST_DATA")
-	err = json.Unmarshal([]byte(rawData), &data)
-	if data.DeviceID == 0 {
-		err = fmt.Errorf("'deviceId' missing from test data")
-		return
-	}
-	if data.OrgID == 0 {
-		err = fmt.Errorf("'orgId' missing from test data")
-		return
+	err = json.Unmarshal([]byte(env.TestData), &data)
+	required := map[string]int{"deviceId": data.DeviceID, "orgId": data.OrgID, "locationId": data.LocationID}
+
+	for k, v := range required {
+		if v == 0 {
+			err = fmt.Errorf("'%s' missing from test data", k)
+			return
+		}
 	}
 	return
 }
