@@ -1,6 +1,10 @@
 package ninjarmm
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"math"
+	"time"
+)
 
 type ninjaRMMBaseError struct {
 	Error string `json:"error"`
@@ -676,7 +680,7 @@ type OrganizationSummary struct {
 
 type Activity struct {
 	ID              json.Number `json:"id"`
-	ActivityTime    string      `json:"activityTime"`
+	ActivityTime    Timestamp   `json:"activityTime"`
 	DeviceID        json.Number `json:"deviceId"`
 	Severity        string      `json:"severity"`
 	Priority        string      `json:"priority"`
@@ -697,7 +701,7 @@ type DeviceOS struct {
 	Manufacturer            string      `json:"manufacturer"`
 	Name                    string      `json:"name"`
 	Architecture            string      `json:"architecture"`
-	LastBootTime            json.Number `json:"lastBootTime"`
+	LastBootTime            Timestamp   `json:"lastBootTime"`
 	BuildNumber             string      `json:"buildNumber"`
 	ReleaseID               string      `json:"releaseId"`
 	ServicePackMajorVersion json.Number `json:"servicePackMajorVersion"`
@@ -746,21 +750,21 @@ type DeviceVolume struct {
 }
 
 type Device struct {
-	ID             int         `json:"id"`
-	OrganizationID int         `json:"organizationId"`
-	LocationID     int         `json:"locationId"`
-	NodeClass      string      `json:"nodeClass"`
-	NodeRoleId     int         `json:"nodeRoleId"`
-	RolePolicyID   int         `json:"rolePolicyId"`
-	PolicyID       int         `json:"policyId"`
-	ApprovalStatus string      `json:"approvalStatus"`
-	Offline        bool        `json:"offline"`
-	DisplayName    string      `json:"displayName"`
-	SystemName     string      `json:"systemName"`
-	DNSName        string      `json:"dnsName"`
-	Created        json.Number `json:"created"`
-	LastContact    json.Number `json:"lastContact"`
-	LastUpdate     json.Number `json:"lastUpdate"`
+	ID             int       `json:"id"`
+	OrganizationID int       `json:"organizationId"`
+	LocationID     int       `json:"locationId"`
+	NodeClass      string    `json:"nodeClass"`
+	NodeRoleId     int       `json:"nodeRoleId"`
+	RolePolicyID   int       `json:"rolePolicyId"`
+	PolicyID       int       `json:"policyId"`
+	ApprovalStatus string    `json:"approvalStatus"`
+	Offline        bool      `json:"offline"`
+	DisplayName    string    `json:"displayName"`
+	SystemName     string    `json:"systemName"`
+	DNSName        string    `json:"dnsName"`
+	Created        Timestamp `json:"created"`
+	LastContact    Timestamp `json:"lastContact"`
+	LastUpdate     Timestamp `json:"lastUpdate"`
 }
 
 type DeviceDetails struct {
@@ -778,14 +782,14 @@ type DeviceDetails struct {
 }
 
 type OSPatchReport struct {
-	ID        string      `json:"id"`
-	Name      string      `json:"name"`
-	Severity  string      `json:"severity"`
-	Status    string      `json:"status"`
-	Type      string      `json:"type"`
-	KBNumber  string      `json:"kbNumber"`
-	DeviceID  int         `json:"deviceId"`
-	Timestamp json.Number `json:"timestamp"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Severity  string    `json:"severity"`
+	Status    string    `json:"status"`
+	Type      string    `json:"type"`
+	KBNumber  string    `json:"kbNumber"`
+	DeviceID  int       `json:"deviceId"`
+	Timestamp Timestamp `json:"timestamp"`
 }
 
 type OSPatchReportQuery struct {
@@ -799,13 +803,13 @@ type OSPatchReportDetail struct {
 	Status    string        `json:"status"`
 	Type      string        `json:"type"`
 	KBNumber  string        `json:"kbNumber"`
-	Timestamp json.Number   `json:"timestamp"`
+	Timestamp Timestamp     `json:"timestamp"`
 	Device    DeviceDetails `json:"device"`
 }
 
 type WebhookBase struct {
 	ID              int         `json:"id"`
-	ActivityTime    json.Number `json:"activityTime"`
+	ActivityTime    Timestamp   `json:"activityTime"`
 	DeviceID        int         `json:"deviceId"`
 	Severity        string      `json:"severity"`
 	Priority        string      `json:"priority"`
@@ -824,4 +828,20 @@ type WebhookBase struct {
 type Webhook struct {
 	WebhookBase
 	Device Device `json:"device"`
+}
+
+type Timestamp struct {
+	time.Time
+}
+
+func (ts *Timestamp) UnmarshalJSON(b []byte) (err error) {
+	var raw float64
+	err = json.Unmarshal(b, &raw)
+	if err != nil {
+		return
+	}
+	sec, dec := math.Modf(raw)
+	t := time.Unix(int64(sec), int64(dec*(1e9)))
+	ts.Time = t
+	return
 }
