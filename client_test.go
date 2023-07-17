@@ -48,6 +48,14 @@ func Test_NinjaRMMClient(t *testing.T) {
 		assert.NoError(t, err)
 		assert.IsType(t, DeviceDetails{}, data)
 	})
+	t.Run("device custom fields", func(t *testing.T) {
+		client, err := initClient()
+		assert.NoError(t, err)
+		assert.NotNil(t, client)
+		data, err := client.DeviceCustomFields(testData.DeviceID)
+		assert.NoError(t, err)
+		assert.IsType(t, map[string]any{}, data)
+	})
 	t.Run("organization", func(t *testing.T) {
 		client, err := initClient()
 		assert.NoError(t, err)

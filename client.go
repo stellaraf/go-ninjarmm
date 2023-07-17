@@ -78,6 +78,15 @@ func (client *Client) Device(id int) (device DeviceDetails, err error) {
 	return
 }
 
+func (client *Client) DeviceCustomFields(id int) (customFields map[string]any, err error) {
+	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/device/%d/custom-fields", id))
+	if err != nil {
+		return
+	}
+	err = client.handleResponse(res, &customFields)
+	return
+}
+
 func (client *Client) OSPatches(orgId int) (patchReport OSPatchReportQuery, err error) {
 	q := url.Values{}
 	q.Add("org", fmt.Sprintf("%d", orgId))
