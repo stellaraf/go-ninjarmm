@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/stellaraf/go-utils"
@@ -32,13 +33,13 @@ func isApiError(data interface{}) bool {
 
 func getNinjaRMMError(data interface{}) string {
 	if isRequestError(data) {
-		return data.(ninjaRMMRequestError).ErrorMessage
+		return data.(NinjaRMMRequestError).ErrorMessage
 	}
 	if isApiError(data) {
-		return data.(ninaRMMAPIError).ErrorDescription
+		return data.(NinjaRMMAPIError).ErrorDescription
 	}
 	if isGenericError(data) {
-		return data.(ninjaRMMBaseError).Error
+		return data.(NinjaRMMBaseError).Error
 	}
 	return fmt.Sprintf("%s", data)
 }
@@ -85,4 +86,9 @@ func checkForError(response *resty.Response) (err error) {
 	}
 	err = fmt.Errorf("request failed with %d error '%s'", response.StatusCode(), errorDetail)
 	return
+}
+
+func timeToFractional(t time.Time) float64 {
+	f := float64(t.UnixNano()) / 1e9
+	return f
 }

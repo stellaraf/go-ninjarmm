@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/stellaraf/go-utils"
@@ -166,6 +167,37 @@ func (client *Client) CreateOrganization(name string) (org Organization, err err
 		return
 	}
 	err = client.handleResponse(res, &org)
+	return
+}
+
+func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, disabledFeatures []string) (err error) {
+	body := &MaintenanceRequest{
+		Start:            start,
+		End:              end,
+		DisabledFeatures: disabledFeatures,
+	}
+	req := client.httpClient.R().SetError(&NinjaRMMPutError{}).SetBody(body)
+	res, err := req.Put(fmt.Sprintf("/api/v2/device/%d/maintenance", deviceID))
+	if err != nil {
+		return
+	}
+	if res.IsError() {
+		parsed := res.Error().(*NinjaRMMPutError)
+		err = fmt.Errorf(parsed.GetErrorMessage(deviceID))
+	}
+	return
+}
+
+func (client *Client) CancelMaintenance(deviceID int) (err error) {
+	req := client.httpClient.R()
+	res, err := req.Delete(fmt.Sprintf("/api/v2/device/%d/maintenance", deviceID))
+	if err != nil {
+		return
+	}
+	if res.StatusCode() > 299 {
+		b := string(res.Body())
+		err = fmt.Errorf("failed to delete maintenance for device '%d' due to error '%s'", deviceID, b)
+	}
 	return
 }
 
