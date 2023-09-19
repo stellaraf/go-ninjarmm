@@ -64,16 +64,21 @@ type Timestamp struct {
 	time.Time
 }
 
-func (ts *Timestamp) UnmarshalJSON(b []byte) (err error) {
+func (ts *Timestamp) UnmarshalJSON(b []byte) error {
 	var raw float64
-	err = json.Unmarshal(b, &raw)
+	err := json.Unmarshal(b, &raw)
 	if err != nil {
-		return
+		return err
 	}
 	sec, dec := math.Modf(raw)
 	t := time.Unix(int64(sec), int64(dec*(1e9)))
 	ts.Time = t
-	return
+	return nil
+}
+
+func (ts Timestamp) MarshalJSON() ([]byte, error) {
+	timestamp := float64(ts.Unix()) + float64(ts.Nanosecond())/1e9
+	return json.Marshal(timestamp)
 }
 
 const (

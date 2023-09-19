@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_ActivityTime(t *testing.T) {
@@ -14,13 +15,22 @@ func Test_ActivityTime(t *testing.T) {
 	type S struct {
 		Timestamp Timestamp `json:"timestamp"`
 	}
-	t.Run("parse timestamp", func(t *testing.T) {
+	var ts Timestamp
+	asJSON := []byte(`{"timestamp":1689605132.309}`)
+
+	t.Run("unmarshal", func(t *testing.T) {
 		var s *S
-		j := []byte(`{"timestamp":1689605132.309}`)
-		err := json.Unmarshal(j, &s)
-		assert.NoError(t, err)
+		err := json.Unmarshal(asJSON, &s)
+		ts = s.Timestamp
+		require.NoError(t, err)
 		assert.IsType(t, Timestamp{}, s.Timestamp)
 		assert.Equal(t, s.Timestamp.Month(), time.July)
+	})
+	t.Run("marshal", func(t *testing.T) {
+		s := S{Timestamp: ts}
+		result, err := json.Marshal(&s)
+		require.NoError(t, err)
+		assert.Equal(t, asJSON, result)
 	})
 }
 
@@ -40,7 +50,7 @@ func Test_MaintenanceRequest(t *testing.T) {
 			DisabledFeatures: disabledFeatures,
 		}
 		result, err := json.Marshal(&mr)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.JSONEq(t, expected, string(result))
 	})
 }
