@@ -13,22 +13,35 @@ import (
 
 func isGenericError(token interface{}) bool {
 	reflection := reflect.ValueOf(token)
-	field := reflection.FieldByName("Error")
-	return field.IsValid()
+	if reflection.Kind() == reflect.Ptr {
+		return reflection.Elem().FieldByName("Error").IsValid()
+	}
+	return reflection.FieldByName("Error").IsValid()
 }
 
 func isRequestError(data interface{}) bool {
+
 	reflection := reflect.ValueOf(data)
-	resultCode := reflection.FieldByName("ResultCode")
-	errorMessage := reflection.FieldByName("ErrorMessage")
-	incidentID := reflection.FieldByName("IncidentID")
-	return resultCode.IsValid() && errorMessage.IsValid() && incidentID.IsValid()
+	if reflection.Kind() == reflect.Ptr {
+		elem := reflection.Elem()
+		resultCode := elem.FieldByName("ResultCode").IsValid()
+		errorMessage := elem.FieldByName("ErrorMessage").IsValid()
+		incidentID := elem.FieldByName("IncidentID").IsValid()
+		return resultCode && errorMessage && incidentID
+
+	}
+	resultCode := reflection.FieldByName("ResultCode").IsValid()
+	errorMessage := reflection.FieldByName("ErrorMessage").IsValid()
+	incidentID := reflection.FieldByName("IncidentID").IsValid()
+	return resultCode && errorMessage && incidentID
 }
 
 func isApiError(data interface{}) bool {
 	reflection := reflect.ValueOf(data)
-	errorDescription := reflection.FieldByName("ErrorDescription")
-	return errorDescription.IsValid()
+	if reflection.Kind() == reflect.Ptr {
+		return reflection.Elem().FieldByName("ErrorDescription").IsValid()
+	}
+	return reflection.FieldByName("ErrorDescription").IsValid()
 }
 
 func getNinjaRMMError(data interface{}) string {

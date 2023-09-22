@@ -81,6 +81,10 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(timestamp)
 }
 
+var (
+	REFRESH_TOKEN_EXPIRY_DAYS uint = 29
+)
+
 const (
 	Approval_APPROVED string = "APPROVED"
 	Approval_PENDING  string = "PENDING"

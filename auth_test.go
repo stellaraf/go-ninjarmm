@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func initAuth() (auth *authT, err error) {
@@ -19,7 +20,7 @@ func initAuth() (auth *authT, err error) {
 		env.BaseURL,
 		env.ClientID,
 		env.ClientSecret,
-		&env.EncryptionPassphrase,
+		nil,
 		getAccessToken,
 		setAccessToken,
 		getRefreshToken,
@@ -32,21 +33,20 @@ func Test_Auth(t *testing.T) {
 
 	t.Run("get an access token", func(t *testing.T) {
 		auth, err := initAuth()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		token, err := auth.GetAccessToken()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.IsType(t, "", token)
 		t.Logf("access token: %s", token)
-
 	})
 
 	t.Run("get refresh token", func(t *testing.T) {
 		var tokenType string
 		auth, err := initAuth()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, auth)
 		token, err := auth.GetRefreshToken()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.IsType(t, tokenType, token)
 		result := "failure"
 		if token == "" {

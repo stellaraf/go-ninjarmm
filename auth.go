@@ -3,7 +3,6 @@ package ninjarmm
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/url"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 
 type CachedTokenCallback func() (string, error)
 
-type SetTokenCallback func(token string, expiresIn float64) error
+type SetTokenCallback func(token string, expiresIn time.Duration) error
 
 type ninjaRMMAccessToken struct {
 	AccessToken  string `json:"access_token"`
@@ -20,6 +19,10 @@ type ninjaRMMAccessToken struct {
 	TokenType    string `json:"token_type"`
 	RefreshToken string `json:"refresh_token"`
 	Scope        string `json:"scope"`
+}
+
+func (token *ninjaRMMAccessToken) Expiry() time.Duration {
+	return time.Duration(token.ExpiresIn) * time.Second
 }
 
 type authT struct {
@@ -35,6 +38,10 @@ type authT struct {
 	httpClient              *resty.Client
 }
 
+func (authT *authT) RefreshTokenExpiry() time.Duration {
+	return time.Duration(REFRESH_TOKEN_EXPIRY_DAYS*24) * time.Hour
+}
+
 func (auth *authT) GetRefreshToken() (token string, err error) {
 	rawToken, err := auth.getRefreshTokenCallback()
 	if err != nil {
@@ -48,7 +55,7 @@ func (auth *authT) GetRefreshToken() (token string, err error) {
 	return "", nil
 }
 
-func (auth *authT) GetNewToken() (token ninjaRMMAccessToken, err error) {
+func (auth *authT) GetNewToken() (token *ninjaRMMAccessToken, err error) {
 	refreshToken, err := auth.GetRefreshToken()
 	if err != nil {
 		return
@@ -56,7 +63,6 @@ func (auth *authT) GetNewToken() (token ninjaRMMAccessToken, err error) {
 	q := url.Values{}
 	q.Set("client_id", auth.clientID)
 	q.Set("client_secret", auth.clientSecret)
-
 	if refreshToken != "" {
 		q.Set("grant_type", "refresh_token")
 		q.Set("refresh_token", refreshToken)
@@ -64,6 +70,7 @@ func (auth *authT) GetNewToken() (token ninjaRMMAccessToken, err error) {
 		q.Set("grant_type", "client_credentials")
 		q.Set("scope", "monitoring management control offline_access")
 	}
+
 	req := auth.httpClient.R()
 	req.SetHeader("content-type", "application/x-www-form-urlencoded")
 	res, err := req.SetBody(q.Encode()).Post("/ws/oauth/token")
@@ -87,6 +94,10 @@ func (auth *authT) GetNewToken() (token ninjaRMMAccessToken, err error) {
 	if err != nil {
 		return
 	}
+	if token == nil {
+		err = fmt.Errorf("failed to get new NinjaRMM access token")
+		return
+	}
 	if isGenericError(token) || isRequestError(token) {
 		errorDetail := getNinjaRMMError(token)
 		err = fmt.Errorf("failed to get new NinjaRMM access token due to error: '%s'", errorDetail)
@@ -105,6 +116,10 @@ func (auth *authT) GetAccessToken() (token string, err error) {
 		if err != nil {
 			return "", err
 		}
+		if newToken == nil {
+			err = fmt.Errorf("failed to retrieve new access token")
+			return "", err
+		}
 		err = auth.CacheNewToken(newToken)
 		if err != nil {
 			return "", err
@@ -117,7 +132,7 @@ func (auth *authT) GetAccessToken() (token string, err error) {
 	return cachedToken, nil
 }
 
-func (auth *authT) CacheNewToken(token ninjaRMMAccessToken) (err error) {
+func (auth *authT) CacheNewToken(token *ninjaRMMAccessToken) (err error) {
 	err = auth.SetAccessToken(token)
 	if err != nil {
 		return
@@ -127,26 +142,22 @@ func (auth *authT) CacheNewToken(token ninjaRMMAccessToken) (err error) {
 }
 
 func (auth *authT) SetRefreshToken(value string) (err error) {
-	expiresAt := time.Now()
-	expiresAt = expiresAt.AddDate(0, 0, 29)
-	now := time.Now()
-	expiresIn := math.Abs(float64(expiresAt.UnixMilli())-float64(now.UnixMilli())) / 1000
 	if auth.encryption {
 		encryptedToken := encrypt(value, auth.encryptionPassphrase)
-		auth.setRefreshTokenCallback(encryptedToken, expiresIn)
+		auth.setRefreshTokenCallback(encryptedToken, auth.RefreshTokenExpiry())
 		return
 	}
-	auth.setRefreshTokenCallback(value, expiresIn)
+	auth.setRefreshTokenCallback(value, auth.RefreshTokenExpiry())
 	return
 }
 
-func (auth *authT) SetAccessToken(token ninjaRMMAccessToken) (err error) {
+func (auth *authT) SetAccessToken(token *ninjaRMMAccessToken) (err error) {
 	if auth.encryption {
 		encrypted := encrypt(token.AccessToken, auth.encryptionPassphrase)
-		auth.setAccessTokenCallback(encrypted, float64(token.ExpiresIn))
+		auth.setAccessTokenCallback(encrypted, token.Expiry())
 		return
 	}
-	auth.setAccessTokenCallback(token.AccessToken, float64(token.ExpiresIn))
+	auth.setAccessTokenCallback(token.AccessToken, token.Expiry())
 	return
 }
 

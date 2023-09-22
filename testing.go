@@ -24,8 +24,8 @@ func setup() (
 		return token, nil
 	}
 
-	setAccessToken := func(token string, expiresIn float64) error {
-		cache.Add("access-token", time.Duration(expiresIn), token)
+	setAccessToken := func(token string, expiresIn time.Duration) error {
+		cache.Add("access-token", expiresIn, token)
 		return nil
 	}
 	getRefreshToken := func() (string, error) {
@@ -36,8 +36,8 @@ func setup() (
 		token := res.Data().(string)
 		return token, nil
 	}
-	setRefreshToken := func(token string, expiresIn float64) error {
-		cache.Add("refresh-token", time.Duration(expiresIn), token)
+	setRefreshToken := func(token string, expiresIn time.Duration) error {
+		cache.Add("refresh-token", expiresIn, token)
 		return nil
 	}
 	return getAccessToken, setAccessToken, getRefreshToken, setRefreshToken, nil
