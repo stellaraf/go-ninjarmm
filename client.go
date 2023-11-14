@@ -3,6 +3,7 @@ package ninjarmm
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"time"
@@ -17,48 +18,56 @@ type Client struct {
 	httpClient *resty.Client
 }
 
-func (client *Client) handleResponse(response *resty.Response, data any) (err error) {
-	err = checkForError(response)
+func (client *Client) handleResponse(response *resty.Response, data any) error {
+	err := checkForError(response)
 	if err != nil {
-		return
+		return err
 	}
 	err = json.Unmarshal(response.Body(), data)
-	return
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (client *Client) Location(orgID, locID int) (location *Location, err error) {
+func (client *Client) Location(orgID, locID int) (*Location, error) {
 	locations, err := client.OrganizationLocations(orgID)
 	if err != nil {
-		return
+		return nil, err
 	}
 	for _, loc := range locations {
 		if loc.ID == locID {
-			location = &loc
-			return
+			return &loc, nil
 		}
 	}
-	if location == nil {
-		err = fmt.Errorf("location with id '%d' not found in organization '%d'", locID, orgID)
-	}
-	return
+	err = fmt.Errorf("location with id '%d' not found in organization '%d'", locID, orgID)
+	return nil, err
 }
 
-func (client *Client) OrganizationLocations(orgID int) (locations []Location, err error) {
+func (client *Client) OrganizationLocations(orgID int) ([]Location, error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d/locations", orgID))
 	if err != nil {
-		return
+		return nil, err
 	}
+	var locations []Location
 	err = client.handleResponse(res, &locations)
-	return
+	if err != nil {
+		return nil, err
+	}
+	return locations, nil
 }
 
-func (client *Client) Organizations() (orgs []OrganizationSummary, err error) {
+func (client *Client) Organizations() ([]OrganizationSummary, error) {
 	res, err := client.httpClient.R().Get("/api/v2/organizations")
 	if err != nil {
-		return
+		return nil, err
 	}
+	var orgs []OrganizationSummary
 	err = client.handleResponse(res, &orgs)
-	return
+	if err != nil {
+		return nil, err
+	}
+	return orgs, nil
 }
 
 func (client *Client) Organization(id int) (org Organization, err error) {
@@ -99,10 +108,10 @@ func (client *Client) OSPatches(orgId int) (patchReport OSPatchReportQuery, err 
 	return
 }
 
-func (client *Client) OSPatchReport(orgId int) (patchReport []OSPatchReportDetail, err error) {
+func (client *Client) OSPatchReport(orgId int) ([]OSPatchReportDetail, error) {
 	reports, err := client.OSPatches(orgId)
 	if err != nil {
-		return
+		return nil, err
 	}
 	devicesToCollect := []int{}
 	for _, report := range reports.Results {
@@ -115,20 +124,20 @@ func (client *Client) OSPatchReport(orgId int) (patchReport []OSPatchReportDetai
 	for _, deviceId := range devicesToCollect {
 		device, err := client.Device(deviceId)
 		if err != nil {
-			return patchReport, err
+			return nil, err
 		}
 		deviceMap[deviceId] = device
 	}
 	if len(deviceMap) != len(devicesToCollect) {
 		err = fmt.Errorf("failed to collect device details for Organization '%d'", orgId)
-		return
+		return nil, err
 	}
+	patchReport := make([]OSPatchReportDetail, 0, len(reports.Results))
 	for _, report := range reports.Results {
-
 		device, hasKey := deviceMap[report.DeviceID]
 		if !hasKey {
 			err = fmt.Errorf("failed to get details for device '%d'", report.DeviceID)
-			return patchReport, err
+			return nil, err
 		}
 		result := OSPatchReportDetail{
 			ID:        report.ID,
@@ -142,7 +151,7 @@ func (client *Client) OSPatchReport(orgId int) (patchReport []OSPatchReportDetai
 		}
 		patchReport = append(patchReport, result)
 	}
-	return
+	return patchReport, nil
 }
 
 func (client *Client) CreateOrganization(name string) (org Organization, err error) {
@@ -170,7 +179,7 @@ func (client *Client) CreateOrganization(name string) (org Organization, err err
 	return
 }
 
-func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, disabledFeatures []string) (err error) {
+func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, disabledFeatures []string) error {
 	body := &MaintenanceRequest{
 		Start:            start,
 		End:              end,
@@ -179,26 +188,28 @@ func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, di
 	req := client.httpClient.R().SetError(&NinjaRMMPutError{}).SetBody(body)
 	res, err := req.Put(fmt.Sprintf("/api/v2/device/%d/maintenance", deviceID))
 	if err != nil {
-		return
+		return err
 	}
 	if res.IsError() {
 		parsed := res.Error().(*NinjaRMMPutError)
 		err = fmt.Errorf(parsed.GetErrorMessage(deviceID))
+		return err
 	}
-	return
+	return nil
 }
 
-func (client *Client) CancelMaintenance(deviceID int) (err error) {
+func (client *Client) CancelMaintenance(deviceID int) error {
 	req := client.httpClient.R()
 	res, err := req.Delete(fmt.Sprintf("/api/v2/device/%d/maintenance", deviceID))
 	if err != nil {
-		return
+		return err
 	}
 	if res.StatusCode() > 299 {
 		b := string(res.Body())
 		err = fmt.Errorf("failed to delete maintenance for device '%d' due to error '%s'", deviceID, b)
+		return err
 	}
-	return
+	return nil
 }
 
 // New creates a new NinjaRMMClient.
@@ -208,7 +219,7 @@ func New(
 	getAccessTokenCallback CachedTokenCallback,
 	setAccessTokenCallback SetTokenCallback,
 	getRefreshTokenCallback CachedTokenCallback,
-	setRefreshTokenCallback SetTokenCallback) (client *Client, err error) {
+	setRefreshTokenCallback SetTokenCallback) (*Client, error) {
 
 	auth, err := newAuth(
 		baseURL,
@@ -221,19 +232,30 @@ func New(
 		setRefreshTokenCallback,
 	)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if auth == nil {
 		err = fmt.Errorf("failed to initialize authentication")
-		return
+		return nil, err
 	}
 	httpClient := resty.New()
 	httpClient.SetBaseURL(baseURL)
 	token, err := auth.GetAccessToken()
 	if err != nil {
-		return
+		return nil, err
 	}
 	httpClient.SetAuthToken(token)
-	client = &Client{auth: auth, baseURL: baseURL, httpClient: httpClient}
-	return
+	httpClient.AddRetryCondition(func(res *resty.Response, err error) bool {
+		return res.StatusCode() == http.StatusUnauthorized
+	})
+	httpClient.AddRetryHook(func(res *resty.Response, err error) {
+		if res.StatusCode() == http.StatusUnauthorized {
+			token, err := auth.GetAccessToken()
+			if err == nil {
+				httpClient.SetAuthToken(token)
+			}
+		}
+	})
+	client := &Client{auth: auth, baseURL: baseURL, httpClient: httpClient}
+	return client, err
 }

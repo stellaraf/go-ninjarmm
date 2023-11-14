@@ -42,23 +42,22 @@ func (authT *authT) RefreshTokenExpiry() time.Duration {
 	return time.Duration(REFRESH_TOKEN_EXPIRY_DAYS*24) * time.Hour
 }
 
-func (auth *authT) GetRefreshToken() (token string, err error) {
+func (auth *authT) GetRefreshToken() (string, error) {
 	rawToken, err := auth.getRefreshTokenCallback()
 	if err != nil {
-		return
+		return "", err
 	}
 	if rawToken != "" && auth.encryption {
 		decrypted := decrypt(auth.encryptionPassphrase, rawToken)
-		token = decrypted
-		return
+		return decrypted, nil
 	}
 	return "", nil
 }
 
-func (auth *authT) GetNewToken() (token *ninjaRMMAccessToken, err error) {
+func (auth *authT) GetNewToken() (*ninjaRMMAccessToken, error) {
 	refreshToken, err := auth.GetRefreshToken()
 	if err != nil {
-		return
+		return nil, err
 	}
 	q := url.Values{}
 	q.Set("client_id", auth.clientID)
@@ -76,40 +75,40 @@ func (auth *authT) GetNewToken() (token *ninjaRMMAccessToken, err error) {
 	res, err := req.SetBody(q.Encode()).Post("/ws/oauth/token")
 
 	if err != nil {
-		return
+		return nil, err
 	}
 	err = checkForError(res)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	bodyBytes := res.Body()
 	if res.StatusCode() >= 400 {
 		errorDetail := string(bodyBytes)
 		err = fmt.Errorf("failed to request new NinjaRMM access token due to %d error: '%s'", res.StatusCode(), errorDetail)
-		return
+		return nil, err
 	}
-
+	var token *ninjaRMMAccessToken
 	err = json.Unmarshal(bodyBytes, &token)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if token == nil {
 		err = fmt.Errorf("failed to get new NinjaRMM access token")
-		return
+		return nil, err
 	}
 	if isGenericError(token) || isRequestError(token) {
 		errorDetail := getNinjaRMMError(token)
 		err = fmt.Errorf("failed to get new NinjaRMM access token due to error: '%s'", errorDetail)
-		return
+		return nil, err
 	}
-	return
+	return token, nil
 }
 
-func (auth *authT) GetAccessToken() (token string, err error) {
+func (auth *authT) GetAccessToken() (string, error) {
 	cachedToken, err := auth.getAccessTokenCallback()
 	if err != nil {
-		return
+		return "", err
 	}
 	if cachedToken == "" {
 		newToken, err := auth.GetNewToken()
@@ -132,33 +131,48 @@ func (auth *authT) GetAccessToken() (token string, err error) {
 	return cachedToken, nil
 }
 
-func (auth *authT) CacheNewToken(token *ninjaRMMAccessToken) (err error) {
-	err = auth.SetAccessToken(token)
+func (auth *authT) CacheNewToken(token *ninjaRMMAccessToken) error {
+	err := auth.SetAccessToken(token)
 	if err != nil {
-		return
+		return err
 	}
 	err = auth.SetRefreshToken(token.RefreshToken)
-	return
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (auth *authT) SetRefreshToken(value string) (err error) {
+func (auth *authT) SetRefreshToken(value string) error {
 	if auth.encryption {
 		encryptedToken := encrypt(value, auth.encryptionPassphrase)
-		auth.setRefreshTokenCallback(encryptedToken, auth.RefreshTokenExpiry())
-		return
+		err := auth.setRefreshTokenCallback(encryptedToken, auth.RefreshTokenExpiry())
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	auth.setRefreshTokenCallback(value, auth.RefreshTokenExpiry())
-	return
+	err := auth.setRefreshTokenCallback(value, auth.RefreshTokenExpiry())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (auth *authT) SetAccessToken(token *ninjaRMMAccessToken) (err error) {
+func (auth *authT) SetAccessToken(token *ninjaRMMAccessToken) error {
 	if auth.encryption {
 		encrypted := encrypt(token.AccessToken, auth.encryptionPassphrase)
-		auth.setAccessTokenCallback(encrypted, token.Expiry())
-		return
+		err := auth.setAccessTokenCallback(encrypted, token.Expiry())
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	auth.setAccessTokenCallback(token.AccessToken, token.Expiry())
-	return
+	err := auth.setAccessTokenCallback(token.AccessToken, token.Expiry())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func newAuth(
