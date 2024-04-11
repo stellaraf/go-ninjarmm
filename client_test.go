@@ -75,6 +75,13 @@ func Test_NinjaRMMClient(t *testing.T) {
 		require.NoError(t, err)
 		assert.IsType(t, []OSPatchReportDetail{}, data)
 	})
+	t.Run("org devices", func(t *testing.T) {
+		t.Parallel()
+		data, err := client.OrganizationDevices(testData.OrgID)
+		require.NoError(t, err)
+		assert.IsType(t, []Device{}, data)
+		assert.True(t, len(data) > 0)
+	})
 	t.Run("org locations", func(t *testing.T) {
 		t.Parallel()
 		data, err := client.OrganizationLocations(testData.OrgID)
