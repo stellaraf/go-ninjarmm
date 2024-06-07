@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"sort"
 	"time"
 
@@ -110,10 +109,9 @@ func (client *Client) DeviceCustomFields(id int) (customFields map[string]any, e
 	return
 }
 
-func (client *Client) OSPatches(orgId int) (patchReport OSPatchReportQuery, err error) {
-	q := url.Values{}
-	q.Add("org", fmt.Sprintf("%d", orgId))
-	res, err := client.httpClient.R().SetQueryParam("df", q.Encode()).Get("/api/v2/queries/os-patches")
+func (client *Client) OSPatches(orgID int) (patchReport OSPatchReportQuery, err error) {
+	df := NewDeviceFilter().Org(EQ, orgID)
+	res, err := client.httpClient.R().SetQueryParam("df", df.Encode()).Get("/api/v2/queries/os-patches")
 	if err != nil {
 		return
 	}
