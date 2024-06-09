@@ -3,6 +3,7 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/muesli/cache2go"
@@ -58,7 +59,10 @@ func (tc *TokenCache) SetRefreshToken(token string, expiresIn time.Duration) err
 }
 
 func LoadEnv() (env Environment, err error) {
-	err = environment.Load(&env)
+	isCI := os.Getenv("CI") == "true"
+	err = environment.Load(&env, &environment.EnvironmentOptions{
+		DotEnv: !isCI,
+	})
 	return
 }
 
