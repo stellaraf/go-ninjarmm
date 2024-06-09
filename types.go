@@ -2,63 +2,17 @@ package ninjarmm
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/stellaraf/go-ninjarmm/internal/auth"
+	"github.com/stellaraf/go-ninjarmm/internal/util"
 )
 
-type NinjaRMMBaseError struct {
-	Error string `json:"error"`
-}
+var DefaultQueryBatchSize int = 100
 
-type NinjaRMMAPIError struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-	ErrorCode        int    `json:"error_code,omitempty"`
-}
-
-type NinjaRMMRequestError struct {
-	ResultCode   string `json:"resultCode"`
-	ErrorMessage string `json:"errorMessage"`
-	IncidentID   string `json:"incidentId"`
-}
-
-type NinjaRMMPutError struct {
-	ErrorMessage struct {
-		Code   string         `json:"code"`
-		Params map[string]any `json:"params"`
-	} `json:"errorMessage"`
-}
-
-func (e *NinjaRMMPutError) GetErrorMessage(deviceID int) string {
-	paramsPairs := []string{}
-	for k, v := range e.ErrorMessage.Params {
-		param := fmt.Sprintf("%s: %v", k, v)
-		paramsPairs = append(paramsPairs, param)
-	}
-	params := strings.Join(paramsPairs, ", ")
-	msg := strings.ReplaceAll(e.ErrorMessage.Code, "_", "")
-	errMsg := fmt.Sprintf("failed to set maintenance for device '%d' due to error '%s'", deviceID, msg)
-	if len(params) > 0 {
-		errMsg += fmt.Sprintf(" (details: %s)", params)
-	}
-	return errMsg
-}
-
-type testDataT struct {
-	OrgID      int `json:"orgId"`
-	DeviceID   int `json:"deviceId"`
-	LocationID int `json:"locationId"`
-}
-
-type environmentT struct {
-	ClientID             string `env:"CLIENT_ID"`
-	ClientSecret         string `env:"CLIENT_SECRET"`
-	BaseURL              string `env:"BASE_URL"`
-	EncryptionPassphrase string `env:"ENCRYPTION_PASSPHRASE"`
-	TestData             string `env:"TEST_DATA"`
-}
+type TokenCache = auth.TokenCache
 
 type Timestamp struct {
 	time.Time
@@ -81,9 +35,28 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(timestamp)
 }
 
-var (
-	REFRESH_TOKEN_EXPIRY_DAYS uint = 29
-)
+type InstallDate struct {
+	time.Time
+}
+
+func (d *InstallDate) UnmarshalJSON(b []byte) error {
+	var raw string
+	err := json.Unmarshal(b, &raw)
+	if err != nil {
+		return err
+	}
+	t, err := time.Parse("2006-01-02", raw)
+	if err != nil {
+		return err
+	}
+	d.Time = t
+	return nil
+}
+
+func (d *InstallDate) MarshalJSON() ([]byte, error) {
+	t := d.Format("2006-01-02")
+	return json.Marshal(t)
+}
 
 const (
 	Approval_APPROVED string = "APPROVED"
@@ -863,8 +836,8 @@ type MaintenanceRequest struct {
 }
 
 func (mr *MaintenanceRequest) MarshalJSON() ([]byte, error) {
-	start := timeToFractional(mr.Start)
-	end := timeToFractional(mr.End)
+	start := util.TimeToFractional(mr.Start)
+	end := util.TimeToFractional(mr.End)
 	disabled := []string{}
 	for _, i := range mr.DisabledFeatures {
 		disabled = append(disabled, strings.ToUpper(strings.TrimSpace(i)))
@@ -879,6 +852,18 @@ func (mr *MaintenanceRequest) MarshalJSON() ([]byte, error) {
 		DisabledFeatures: disabled,
 	}
 	return json.Marshal(&s)
+}
+
+type Role struct {
+	ID          int            `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	NodeClass   string         `json:"nodeClass"`
+	Custom      bool           `json:"custom"`
+	ChassisType string         `json:"chassisType"`
+	Created     Timestamp      `json:"created"`
+	Tags        []string       `json:"tags"`
+	Fields      map[string]any `json:"fields"`
 }
 
 type WebhookBase struct {

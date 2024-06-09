@@ -1,17 +1,16 @@
-package ninjarmm
+package check
 
 import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/stellaraf/go-ninjarmm/internal/types"
 	"github.com/stellaraf/go-utils"
-	"github.com/stellaraf/go-utils/environment"
 )
 
-func isGenericError(token interface{}) bool {
+func IsGenericError(token interface{}) bool {
 	reflection := reflect.ValueOf(token)
 	if reflection.Kind() == reflect.Ptr {
 		return reflection.Elem().FieldByName("Error").IsValid()
@@ -19,7 +18,7 @@ func isGenericError(token interface{}) bool {
 	return reflection.FieldByName("Error").IsValid()
 }
 
-func isRequestError(data interface{}) bool {
+func IsRequestError(data interface{}) bool {
 
 	reflection := reflect.ValueOf(data)
 	if reflection.Kind() == reflect.Ptr {
@@ -36,7 +35,7 @@ func isRequestError(data interface{}) bool {
 	return resultCode && errorMessage && incidentID
 }
 
-func isApiError(data interface{}) bool {
+func IsApiError(data interface{}) bool {
 	reflection := reflect.ValueOf(data)
 	if reflection.Kind() == reflect.Ptr {
 		return reflection.Elem().FieldByName("ErrorDescription").IsValid()
@@ -44,25 +43,7 @@ func isApiError(data interface{}) bool {
 	return reflection.FieldByName("ErrorDescription").IsValid()
 }
 
-func getNinjaRMMError(data interface{}) string {
-	if isRequestError(data) {
-		return data.(NinjaRMMRequestError).ErrorMessage
-	}
-	if isApiError(data) {
-		return data.(NinjaRMMAPIError).ErrorDescription
-	}
-	if isGenericError(data) {
-		return data.(NinjaRMMBaseError).Error
-	}
-	return fmt.Sprintf("%s", data)
-}
-
-func loadEnv() (env environmentT, err error) {
-	err = environment.Load(&env)
-	return
-}
-
-func checkForError(response *resty.Response) (err error) {
+func ForError(response *resty.Response) (err error) {
 	var possibleError interface{}
 	body := response.Body()
 	err = json.Unmarshal(body, &possibleError)
@@ -101,7 +82,15 @@ func checkForError(response *resty.Response) (err error) {
 	return
 }
 
-func timeToFractional(t time.Time) float64 {
-	f := float64(t.UnixNano()) / 1e9
-	return f
+func GetNinjaRMMError(data interface{}) string {
+	if IsRequestError(data) {
+		return data.(types.NinjaRMMRequestError).ErrorMessage
+	}
+	if IsApiError(data) {
+		return data.(types.NinjaRMMAPIError).ErrorDescription
+	}
+	if IsGenericError(data) {
+		return data.(types.NinjaRMMBaseError).Error
+	}
+	return fmt.Sprintf("%s", data)
 }

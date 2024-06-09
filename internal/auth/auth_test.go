@@ -1,32 +1,27 @@
-package ninjarmm
+package auth_test
 
 import (
 	"testing"
 
+	"github.com/stellaraf/go-ninjarmm/internal/auth"
+	"github.com/stellaraf/go-ninjarmm/internal/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func initAuth() (auth *authT, err error) {
-	env, err := loadEnv()
+func initAuth() (*auth.Auth, error) {
+	env, err := test.LoadEnv()
 	if err != nil {
-		return
+		return nil, err
 	}
-	getAccessToken, setAccessToken, getRefreshToken, setRefreshToken, err := setup()
-	if err != nil {
-		return
-	}
-	auth, err = newAuth(
+	tc := test.NewTokenCache()
+	return auth.New(
 		env.BaseURL,
 		env.ClientID,
 		env.ClientSecret,
 		nil,
-		getAccessToken,
-		setAccessToken,
-		getRefreshToken,
-		setRefreshToken,
+		tc,
 	)
-	return
 }
 
 func Test_Auth(t *testing.T) {

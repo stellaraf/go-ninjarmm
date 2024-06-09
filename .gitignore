@@ -1,6 +1,5 @@
 .env*
 *.tar.gz
-test/
 # Binaries for programs and plugins
 *.exe
 *.exe~

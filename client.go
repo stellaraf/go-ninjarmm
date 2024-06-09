@@ -8,17 +8,21 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/stellaraf/go-ninjarmm/internal/auth"
+	"github.com/stellaraf/go-ninjarmm/internal/check"
+	"github.com/stellaraf/go-ninjarmm/internal/types"
+	"github.com/stellaraf/go-ninjarmm/internal/util"
 	"github.com/stellaraf/go-utils"
 )
 
 type Client struct {
-	auth       *authT
+	auth       *auth.Auth
 	baseURL    string
 	httpClient *resty.Client
 }
 
-func (client *Client) handleResponse(response *resty.Response, data any) error {
-	err := checkForError(response)
+func handleResponse(response *resty.Response, data any) error {
+	err := check.ForError(response)
 	if err != nil {
 		return err
 	}
@@ -49,7 +53,7 @@ func (client *Client) OrganizationLocations(orgID int) ([]Location, error) {
 		return nil, err
 	}
 	var locations []Location
-	err = client.handleResponse(res, &locations)
+	err = handleResponse(res, &locations)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,7 @@ func (client *Client) OrganizationDevices(orgID int) ([]Device, error) {
 		return nil, err
 	}
 	var devices []Device
-	err = client.handleResponse(res, &devices)
+	err = handleResponse(res, &devices)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +79,7 @@ func (client *Client) Organizations() ([]OrganizationSummary, error) {
 		return nil, err
 	}
 	var orgs []OrganizationSummary
-	err = client.handleResponse(res, &orgs)
+	err = handleResponse(res, &orgs)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +91,7 @@ func (client *Client) Organization(id int) (org Organization, err error) {
 	if err != nil {
 		return
 	}
-	err = client.handleResponse(res, &org)
+	err = handleResponse(res, &org)
 	return
 }
 
@@ -96,7 +100,7 @@ func (client *Client) Device(id int) (device DeviceDetails, err error) {
 	if err != nil {
 		return
 	}
-	err = client.handleResponse(res, &device)
+	err = handleResponse(res, &device)
 	return
 }
 
@@ -105,8 +109,50 @@ func (client *Client) DeviceCustomFields(id int) (customFields map[string]any, e
 	if err != nil {
 		return
 	}
-	err = client.handleResponse(res, &customFields)
+	err = handleResponse(res, &customFields)
 	return
+}
+
+func (client *Client) Roles(filter ...string) ([]Role, error) {
+	req := client.httpClient.R().SetResult([]Role{})
+	res, err := req.Get("/api/v2/roles")
+	if err != nil {
+		return nil, err
+	}
+	var roles []Role
+	err = handleResponse(res, &roles)
+	if err != nil {
+		return nil, err
+	}
+	if len(filter) != 0 {
+		filtered := make([]Role, 0, len(roles))
+		for _, f := range filter {
+			for _, role := range roles {
+				if util.MatchWithUpper(role.Name, f) {
+					filtered = append(filtered, role)
+				}
+			}
+		}
+		return filtered, nil
+	}
+	return roles, nil
+}
+
+func (client *Client) SetDeviceRole(deviceID int, roleID int) error {
+	b := make(map[string]int, 1)
+	b["nodeRoleId"] = roleID
+	req := client.httpClient.R().SetBody(b)
+	res, err := req.Patch(fmt.Sprintf("/api/v2/device/%d", deviceID))
+	if err != nil {
+		return err
+	}
+	if res.IsError() {
+		err = check.ForError(res)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (client *Client) OSPatches(orgID int) (patchReport OSPatchReportQuery, err error) {
@@ -115,7 +161,7 @@ func (client *Client) OSPatches(orgID int) (patchReport OSPatchReportQuery, err 
 	if err != nil {
 		return
 	}
-	err = client.handleResponse(res, &patchReport)
+	err = handleResponse(res, &patchReport)
 	return
 }
 
@@ -186,7 +232,7 @@ func (client *Client) CreateOrganization(name string) (org Organization, err err
 	if err != nil {
 		return
 	}
-	err = client.handleResponse(res, &org)
+	err = handleResponse(res, &org)
 	return
 }
 
@@ -196,13 +242,13 @@ func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, di
 		End:              end,
 		DisabledFeatures: disabledFeatures,
 	}
-	req := client.httpClient.R().SetError(&NinjaRMMPutError{}).SetBody(body)
+	req := client.httpClient.R().SetError(&types.NinjaRMMPutError{}).SetBody(body)
 	res, err := req.Put(fmt.Sprintf("/api/v2/device/%d/maintenance", deviceID))
 	if err != nil {
 		return err
 	}
 	if res.IsError() {
-		parsed := res.Error().(*NinjaRMMPutError)
+		parsed := res.Error().(*types.NinjaRMMPutError)
 		err = fmt.Errorf(parsed.GetErrorMessage(deviceID))
 		return err
 	}
@@ -223,24 +269,24 @@ func (client *Client) CancelMaintenance(deviceID int) error {
 	return nil
 }
 
+func (client *Client) SoftwareInventory(filter *deviceFilter) ([]SoftwareInventoryResult, error) {
+	qc := NewQueryClient[SoftwareInventoryResult](client, DefaultQueryBatchSize)
+	q := map[string]string{"df": filter.String(), "pageSize": fmt.Sprint(DefaultQueryBatchSize)}
+	return qc.Do("/api/v2/queries/software", q)
+}
+
 // New creates a new NinjaRMMClient.
 func New(
 	baseURL, clientID, clientSecret string,
 	encryption *string,
-	getAccessTokenCallback CachedTokenCallback,
-	setAccessTokenCallback SetTokenCallback,
-	getRefreshTokenCallback CachedTokenCallback,
-	setRefreshTokenCallback SetTokenCallback) (*Client, error) {
+	tokenCache TokenCache) (*Client, error) {
 
-	auth, err := newAuth(
+	auth, err := auth.New(
 		baseURL,
 		clientID,
 		clientSecret,
 		encryption,
-		getAccessTokenCallback,
-		setAccessTokenCallback,
-		getRefreshTokenCallback,
-		setRefreshTokenCallback,
+		tokenCache,
 	)
 	if err != nil {
 		return nil, err
