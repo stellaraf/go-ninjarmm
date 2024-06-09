@@ -1,6 +1,6 @@
 module github.com/stellaraf/go-ninjarmm
 
-go 1.19
+go 1.22.1
 
 require (
 	github.com/go-resty/resty/v2 v2.7.0
