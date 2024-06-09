@@ -6,11 +6,11 @@ jobs:
         name: Tests
         runs-on: ubuntu-latest
         env:
-            CLIENT_ID: "${{ secrets.NINJARMM_CLIENT_ID }}"
-            CLIENT_SECRET: "${{ secrets.NINJARMM_CLIENT_SECRET }}"
-            ENCRYPTION_PASSPHRASE: "${{ secrets.NINJARMM_ENCRYPTION_PASSPHRASE }}"
-            BASE_URL: "${{ secrets.NINJARMM_BASE_URL }}"
-            TEST_DATA: "${{ secrets.NINJARMM_TEST_DATA }}"
+            CLIENT_ID: "${{ secrets.CLIENT_ID }}"
+            CLIENT_SECRET: "${{ secrets.CLIENT_SECRET }}"
+            ENCRYPTION_PASSPHRASE: "${{ secrets.ENCRYPTION_PASSPHRASE }}"
+            BASE_URL: "${{ secrets.BASE_URL }}"
+            TEST_DATA: "${{ secrets.TEST_DATA }}"
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-go@v5
