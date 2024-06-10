@@ -131,6 +131,13 @@ func Test_NinjaRMMClient(t *testing.T) {
 		err := client.SetDeviceRole(testData.DeviceID, testData.RoleID)
 		require.NoError(t, err)
 	})
+	t.Run("get role", func(t *testing.T) {
+		t.Parallel()
+		role, err := client.Role(testData.RoleID)
+		require.NoError(t, err)
+		assert.IsType(t, &ninjarmm.Role{}, role)
+		assert.Equal(t, testData.RoleID, role.ID)
+	})
 }
 
 func TestClient_SoftwareInventory(t *testing.T) {

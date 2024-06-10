@@ -138,6 +138,19 @@ func (client *Client) Roles(filter ...string) ([]Role, error) {
 	return roles, nil
 }
 
+func (client *Client) Role(id int) (*Role, error) {
+	roles, err := client.Roles()
+	if err != nil {
+		return nil, err
+	}
+	for _, role := range roles {
+		if role.ID == id {
+			return &role, nil
+		}
+	}
+	return nil, fmt.Errorf("role with ID '%d' not found", id)
+}
+
 func (client *Client) SetDeviceRole(deviceID int, roleID int) error {
 	b := make(map[string]int, 1)
 	b["nodeRoleId"] = roleID
