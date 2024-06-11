@@ -3,8 +3,8 @@ package ninjarmm
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"regexp"
 	"sort"
 	"time"
 
@@ -345,7 +345,7 @@ func (client *Client) SoftwareInventory(filter *deviceFilter) ([]SoftwareInvento
 
 // DevicesWithSoftware retrieves the software inventory for a set of devices and returns the device
 // IDs for devices that have a specific software.
-func (client *Client) DevicesWithSoftware(name string, filter *deviceFilter) ([]int, error) {
+func (client *Client) DevicesWithSoftware(pattern *regexp.Regexp, filter *deviceFilter) ([]int, error) {
 	all, err := client.Devices(filter)
 	if err != nil {
 		return nil, err
@@ -362,18 +362,15 @@ func (client *Client) DevicesWithSoftware(name string, filter *deviceFilter) ([]
 			ids = append(ids, d.ID)
 		}
 		df := NewDeviceFilter().ID(IN, ids...)
-		log.Println(n, "-", df.String())
 		inventory, err := client.SoftwareInventory(df)
 		if err != nil {
 			return nil, err
 		}
-		log.Println(n, "-", fmt.Sprintf("len(inventory)=%d", len(inventory)))
 		r := make([]int, 0, len(*devices))
 		for _, pkg := range inventory {
 			pkg := pkg
 			did := int(pkg.DeviceID)
-			if pkg.Name == name {
-				log.Println(n, "-", pkg.DeviceID, pkg.Name)
+			if pattern.MatchString(pkg.Name) {
 				r = append(r, did)
 			}
 		}

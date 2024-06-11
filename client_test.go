@@ -2,6 +2,7 @@ package ninjarmm_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -170,7 +171,7 @@ func TestClient_DevicesWithSoftware(t *testing.T) {
 	client, err := initClient()
 	require.NoError(t, err)
 	ninjarmm.DefaultQueryBatchSize = 10
-	results, err := client.DevicesWithSoftware(td.SoftwareName, df)
+	results, err := client.DevicesWithSoftware(regexp.MustCompile(td.SoftwareName), df)
 	require.NoError(t, err)
 	assert.True(t, len(results) > 5, fmt.Sprintf("result=%d != expected=>%d", len(results), 5))
 }
