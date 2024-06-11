@@ -6,7 +6,7 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
 	github.com/sourcegraph/conc v0.3.0
-	github.com/stellaraf/go-utils v0.1.3
+	github.com/stellaraf/go-utils v0.1.5
 	github.com/stretchr/testify v1.8.4
 )
 

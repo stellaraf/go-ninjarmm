@@ -138,6 +138,12 @@ func Test_NinjaRMMClient(t *testing.T) {
 		assert.IsType(t, &ninjarmm.Role{}, role)
 		assert.Equal(t, testData.RoleID, role.ID)
 	})
+	t.Run("get devices", func(t *testing.T) {
+		t.Parallel()
+		devices, err := client.Devices(nil)
+		require.NoError(t, err)
+		assert.True(t, len(devices) > 1_000)
+	})
 }
 
 func TestClient_SoftwareInventory(t *testing.T) {
@@ -155,4 +161,16 @@ func TestClient_SoftwareInventory(t *testing.T) {
 		swList = append(swList, sw.Name)
 	}
 	assert.Contains(t, swList, td.SoftwareName)
+}
+
+func TestClient_DevicesWithSoftware(t *testing.T) {
+	td, err := test.LoadTestData()
+	require.NoError(t, err)
+	df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, td.OrgID).Class(ninjarmm.EQ, ninjarmm.NodeClass_WINDOWS_SERVER)
+	client, err := initClient()
+	require.NoError(t, err)
+	ninjarmm.DefaultQueryBatchSize = 10
+	results, err := client.DevicesWithSoftware(td.SoftwareName, df)
+	require.NoError(t, err)
+	assert.True(t, len(results) > 5, fmt.Sprintf("result=%d != expected=>%d", len(results), 5))
 }

@@ -3,11 +3,13 @@ package ninjarmm
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/sourcegraph/conc/iter"
 	"github.com/stellaraf/go-ninjarmm/internal/auth"
 	"github.com/stellaraf/go-ninjarmm/internal/check"
 	"github.com/stellaraf/go-ninjarmm/internal/types"
@@ -33,6 +35,7 @@ func handleResponse(response *resty.Response, data any) error {
 	return nil
 }
 
+// Location retrieves a location's details.
 func (client *Client) Location(orgID, locID int) (*Location, error) {
 	locations, err := client.OrganizationLocations(orgID)
 	if err != nil {
@@ -47,6 +50,7 @@ func (client *Client) Location(orgID, locID int) (*Location, error) {
 	return nil, err
 }
 
+// OrganizationLocations retrieves all locations belonging to an organization.
 func (client *Client) OrganizationLocations(orgID int) ([]Location, error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d/locations", orgID))
 	if err != nil {
@@ -60,6 +64,7 @@ func (client *Client) OrganizationLocations(orgID int) ([]Location, error) {
 	return locations, nil
 }
 
+// OrganizationDevices retrieves all devices belonging to an organization.
 func (client *Client) OrganizationDevices(orgID int) ([]Device, error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d/devices", orgID))
 	if err != nil {
@@ -73,6 +78,7 @@ func (client *Client) OrganizationDevices(orgID int) ([]Device, error) {
 	return devices, nil
 }
 
+// Organizations retrieves a summary for all organizations.
 func (client *Client) Organizations() ([]OrganizationSummary, error) {
 	res, err := client.httpClient.R().Get("/api/v2/organizations")
 	if err != nil {
@@ -86,6 +92,7 @@ func (client *Client) Organizations() ([]OrganizationSummary, error) {
 	return orgs, nil
 }
 
+// Organization retrieves an organization's details.
 func (client *Client) Organization(id int) (org Organization, err error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d", id))
 	if err != nil {
@@ -95,6 +102,7 @@ func (client *Client) Organization(id int) (org Organization, err error) {
 	return
 }
 
+// Device retrieves a device's details.
 func (client *Client) Device(id int) (device DeviceDetails, err error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/device/%d", id))
 	if err != nil {
@@ -104,6 +112,30 @@ func (client *Client) Device(id int) (device DeviceDetails, err error) {
 	return
 }
 
+// Devices retrieves all devices matching the filter. If no filter is provided, all devices will be
+// returned.
+func (client *Client) Devices(df *deviceFilter) (Devices, error) {
+	req := client.httpClient.R()
+	if df != nil {
+		req.SetQueryParam("df", df.String())
+	}
+	res, err := req.Get("/api/v2/devices")
+	if err != nil {
+		return nil, err
+	}
+	err = check.ForError(res)
+	if err != nil {
+		return nil, err
+	}
+	var devices []Device
+	err = json.Unmarshal(res.Body(), &devices)
+	if err != nil {
+		return nil, err
+	}
+	return devices, nil
+}
+
+// DeviceCustomFields retrieves custom fields for a device.
 func (client *Client) DeviceCustomFields(id int) (customFields map[string]any, err error) {
 	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/device/%d/custom-fields", id))
 	if err != nil {
@@ -113,6 +145,14 @@ func (client *Client) DeviceCustomFields(id int) (customFields map[string]any, e
 	return
 }
 
+// Roles retrieves roles and optionally filters the results based on role name. The role name
+// provided will be matched against the exact name provided as well as the name in uppercase and
+// underscore separated. For example:
+//
+//	"Windows Server"
+//	// will match both:
+//	"Windows Server"
+//	"WINDOWS_SERVER"
 func (client *Client) Roles(filter ...string) ([]Role, error) {
 	req := client.httpClient.R().SetResult([]Role{})
 	res, err := req.Get("/api/v2/roles")
@@ -138,6 +178,7 @@ func (client *Client) Roles(filter ...string) ([]Role, error) {
 	return roles, nil
 }
 
+// Role retrieves a role by ID.
 func (client *Client) Role(id int) (*Role, error) {
 	roles, err := client.Roles()
 	if err != nil {
@@ -151,6 +192,7 @@ func (client *Client) Role(id int) (*Role, error) {
 	return nil, fmt.Errorf("role with ID '%d' not found", id)
 }
 
+// SetDeviceRole sets the role of a device.
 func (client *Client) SetDeviceRole(deviceID int, roleID int) error {
 	b := make(map[string]int, 1)
 	b["nodeRoleId"] = roleID
@@ -168,6 +210,7 @@ func (client *Client) SetDeviceRole(deviceID int, roleID int) error {
 	return nil
 }
 
+// OSPatches retrieves an OS patch summary for an organization.
 func (client *Client) OSPatches(orgID int) (patchReport OSPatchReportQuery, err error) {
 	df := NewDeviceFilter().Org(EQ, orgID)
 	res, err := client.httpClient.R().SetQueryParam("df", df.Encode()).Get("/api/v2/queries/os-patches")
@@ -178,6 +221,7 @@ func (client *Client) OSPatches(orgID int) (patchReport OSPatchReportQuery, err 
 	return
 }
 
+// OSPatchReport retrieves a patch report for an organization.
 func (client *Client) OSPatchReport(orgId int) ([]OSPatchReportDetail, error) {
 	reports, err := client.OSPatches(orgId)
 	if err != nil {
@@ -224,6 +268,7 @@ func (client *Client) OSPatchReport(orgId int) ([]OSPatchReportDetail, error) {
 	return patchReport, nil
 }
 
+// CreateOrganization creates a new organization.
 func (client *Client) CreateOrganization(name string) (org Organization, err error) {
 	orgs, err := client.Organizations()
 	if err != nil {
@@ -249,6 +294,7 @@ func (client *Client) CreateOrganization(name string) (org Organization, err err
 	return
 }
 
+// ScheduleMaintenance schedules a maintenance window for a device.
 func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, disabledFeatures []string) error {
 	body := &MaintenanceRequest{
 		Start:            start,
@@ -268,6 +314,7 @@ func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, di
 	return nil
 }
 
+// CancelMaintenance cancels a scheduled maintenance for a device.
 func (client *Client) CancelMaintenance(deviceID int) error {
 	req := client.httpClient.R()
 	res, err := req.Delete(fmt.Sprintf("/api/v2/device/%d/maintenance", deviceID))
@@ -282,10 +329,64 @@ func (client *Client) CancelMaintenance(deviceID int) error {
 	return nil
 }
 
+// SoftwareInventory retrieves the software inventory for a set of devices.
 func (client *Client) SoftwareInventory(filter *deviceFilter) ([]SoftwareInventoryResult, error) {
 	qc := NewQueryClient[SoftwareInventoryResult](client, DefaultQueryBatchSize)
-	q := map[string]string{"df": filter.String(), "pageSize": fmt.Sprint(DefaultQueryBatchSize)}
-	return qc.Do("/api/v2/queries/software", q)
+	var q map[string]string = nil
+	if filter != nil {
+		q = map[string]string{"df": filter.String()}
+	}
+	res, err := qc.Do("/api/v2/queries/software", q)
+	if err != nil {
+		return nil, err
+	}
+	return res.Results, nil
+}
+
+// DevicesWithSoftware retrieves the software inventory for a set of devices and returns the device
+// IDs for devices that have a specific software.
+func (client *Client) DevicesWithSoftware(name string, filter *deviceFilter) ([]int, error) {
+	all, err := client.Devices(filter)
+	if err != nil {
+		return nil, err
+	}
+	final := make([]int, 0, len(all))
+	chunks := utils.ChunkSlice(all, DefaultQueryBatchSize)
+
+	n := 0
+	results, err := iter.MapErr(chunks, func(devices *[]Device) ([]int, error) {
+		n++
+		ids := make([]int, 0, len(*devices))
+		for _, d := range *devices {
+			d := d
+			ids = append(ids, d.ID)
+		}
+		df := NewDeviceFilter().ID(IN, ids...)
+		log.Println(n, "-", df.String())
+		inventory, err := client.SoftwareInventory(df)
+		if err != nil {
+			return nil, err
+		}
+		log.Println(n, "-", fmt.Sprintf("len(inventory)=%d", len(inventory)))
+		r := make([]int, 0, len(*devices))
+		for _, pkg := range inventory {
+			pkg := pkg
+			did := int(pkg.DeviceID)
+			if pkg.Name == name {
+				log.Println(n, "-", pkg.DeviceID, pkg.Name)
+				r = append(r, did)
+			}
+		}
+		return r, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, batch := range results {
+		batch := batch
+		final = append(final, batch...)
+	}
+	return utils.Set(final), nil
 }
 
 // New creates a new NinjaRMMClient.

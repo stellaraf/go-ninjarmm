@@ -771,22 +771,44 @@ type DeviceVolume struct {
 	SerialNumber string      `json:"serialNumber"`
 }
 
+type DeviceMaintenance struct {
+	Status string    `json:"status"`
+	Start  Timestamp `json:"start"`
+	End    Timestamp `json:"end"`
+}
+
 type Device struct {
-	ID             int       `json:"id"`
-	OrganizationID int       `json:"organizationId"`
-	LocationID     int       `json:"locationId"`
-	NodeClass      string    `json:"nodeClass"`
-	NodeRoleId     int       `json:"nodeRoleId"`
-	RolePolicyID   int       `json:"rolePolicyId"`
-	PolicyID       int       `json:"policyId"`
-	ApprovalStatus string    `json:"approvalStatus"`
-	Offline        bool      `json:"offline"`
-	DisplayName    string    `json:"displayName"`
-	SystemName     string    `json:"systemName"`
-	DNSName        string    `json:"dnsName"`
-	Created        Timestamp `json:"created"`
-	LastContact    Timestamp `json:"lastContact"`
-	LastUpdate     Timestamp `json:"lastUpdate"`
+	ID             int                `json:"id"`
+	ApprovalStatus string             `json:"approvalStatus"`
+	Created        Timestamp          `json:"created"`
+	DisplayName    string             `json:"displayName"`
+	DNSName        string             `json:"dnsName"`
+	Fields         map[string]any     `json:"fields"`
+	LastContact    Timestamp          `json:"lastContact"`
+	LastUpdate     Timestamp          `json:"lastUpdate"`
+	LocationID     int                `json:"locationId"`
+	Maintenance    *DeviceMaintenance `json:"maintenance"`
+	NetBIOSName    string             `json:"netbiosName"`
+	NodeClass      string             `json:"nodeClass"`
+	NodeRoleID     int                `json:"nodeRoleId"`
+	Offline        bool               `json:"offline"`
+	OrganizationID int                `json:"organizationId"`
+	ParentDeviceID int                `json:"parentDeviceId"`
+	PolicyID       int                `json:"policyId"`
+	RolePolicyID   int                `json:"rolePolicyId"`
+	SystemName     string             `json:"systemName"`
+	Tags           []string           `json:"tags"`
+	UserData       map[string]any     `json:"userData"`
+}
+
+type Devices []Device
+
+func (d Devices) IDs() []int {
+	ids := make([]int, 0, len(d))
+	for _, dev := range d {
+		ids = append(ids, dev.ID)
+	}
+	return ids
 }
 
 type DeviceDetails struct {

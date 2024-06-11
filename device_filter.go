@@ -43,6 +43,10 @@ const and Operator = " AND "
 const APPROVED ApprovalStatus = "APPROVED"
 const PENDING ApprovalStatus = "PENDING"
 
+// NewDeviceFilter creates a device filter object, which provides a native method to create a
+// device filter.
+//
+// https://app.ninjaone.com/apidocs-beta/core-resources/articles/devices/device-filters
 func NewDeviceFilter() *deviceFilter {
 	return &deviceFilter{items: []statement{}}
 }
@@ -67,6 +71,7 @@ func genericize[T any](s []T) []any {
 	return out
 }
 
+// String returns a non-escaped and non-encoded string representation of the device filter.
 func (df *deviceFilter) String() string {
 	values := make([]string, 0, len(df.items)+1)
 	for _, smt := range df.items {
@@ -84,6 +89,8 @@ func (df *deviceFilter) String() string {
 	return strings.Join(values, and.String())
 }
 
+// Encode returns a URL-encoded string representation of the device filter, which is what NinjaRMM
+// expects to receive.
 func (df *deviceFilter) Encode() string {
 	return url.PathEscape(df.String())
 }
@@ -100,26 +107,32 @@ func (df *deviceFilter) add(item string, op Operator, value ...any) *deviceFilte
 	return df
 }
 
+// Org adds an organization filter.
 func (df *deviceFilter) Org(op Operator, value ...int) *deviceFilter {
 	return df.add("org", op, genericize(value)...)
 }
 
+// Loc adds a location filter.
 func (df *deviceFilter) Loc(op Operator, value ...int) *deviceFilter {
 	return df.add("loc", op, genericize(value)...)
 }
 
+// Role adds a role filter.
 func (df *deviceFilter) Role(op Operator, value ...int) *deviceFilter {
 	return df.add("role", op, genericize(value)...)
 }
 
+// ID adds a device ID filter.
 func (df *deviceFilter) ID(op Operator, value ...int) *deviceFilter {
 	return df.add("id", op, genericize(value)...)
 }
 
+// Class adds a Node Class filter.
 func (df *deviceFilter) Class(op Operator, value ...string) *deviceFilter {
 	return df.add("class", op, genericize(value)...)
 }
 
+// Status adds a device approval status filter. Only EQ or NEQ operators may be used.
 func (df *deviceFilter) Status(op Operator, value ApprovalStatus) *deviceFilter {
 	if op != EQ && op != NEQ {
 		panic(fmt.Errorf("status operator must be EQ or NEQ"))
@@ -127,16 +140,19 @@ func (df *deviceFilter) Status(op Operator, value ApprovalStatus) *deviceFilter 
 	return df.add("status", op, value)
 }
 
+// Offline adds a device offline filter.
 func (df *deviceFilter) Offline() *deviceFilter {
 	df.offline = true
 	return df
 }
 
+// Online adds a device online filter.
 func (df *deviceFilter) Online() *deviceFilter {
 	df.online = true
 	return df
 }
 
+// Created adds a device creation date filter. Only BEFORE and AFTER operators may be used.
 func (df *deviceFilter) Created(op Operator, value time.Time) *deviceFilter {
 	if op != EQ && op != BEFORE && op != AFTER {
 		panic(fmt.Errorf("created operator must be EQ, BEFORE, or AFTER"))
@@ -144,6 +160,7 @@ func (df *deviceFilter) Created(op Operator, value time.Time) *deviceFilter {
 	return df.add("created", op, value.Format("2006-01-02"))
 }
 
+// Group adds a group membership filter.
 func (df *deviceFilter) Group(id int) *deviceFilter {
 	df.group = id
 	return df
