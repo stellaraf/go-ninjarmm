@@ -148,6 +148,7 @@ func Test_NinjaRMMClient(t *testing.T) {
 }
 
 func TestClient_SoftwareInventory(t *testing.T) {
+	t.Parallel()
 	td, err := test.LoadTestData()
 	require.NoError(t, err)
 	df := ninjarmm.NewDeviceFilter().ID(ninjarmm.EQ, td.DeviceID)
@@ -165,6 +166,7 @@ func TestClient_SoftwareInventory(t *testing.T) {
 }
 
 func TestClient_DevicesWithSoftware(t *testing.T) {
+	t.Parallel()
 	td, err := test.LoadTestData()
 	require.NoError(t, err)
 	df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, td.OrgID).Class(ninjarmm.EQ, ninjarmm.NodeClass_WINDOWS_SERVER)
@@ -174,4 +176,17 @@ func TestClient_DevicesWithSoftware(t *testing.T) {
 	results, err := client.DevicesWithSoftware(regexp.MustCompile(td.SoftwareName), df)
 	require.NoError(t, err)
 	assert.True(t, len(results) > 5, fmt.Sprintf("result=%d != expected=>%d", len(results), 5))
+}
+
+func TestClient_SearchDevices(t *testing.T) {
+	t.Parallel()
+	td, err := test.LoadTestData()
+	require.NoError(t, err)
+	client, err := initClient()
+	require.NoError(t, err)
+	df := ninjarmm.NewDeviceFilter().ID(ninjarmm.EQ, td.DeviceID)
+	devices, err := client.SearchDevices(regexp.MustCompile(".+"), df)
+	require.NoError(t, err)
+	require.Len(t, devices, 1)
+	assert.Equal(t, devices[0].ID, td.DeviceID)
 }

@@ -3,6 +3,7 @@ package ninjarmm
 import (
 	"encoding/json"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -803,12 +804,32 @@ type Device struct {
 
 type Devices []Device
 
+// IDs returns a slice of device IDs.
 func (d Devices) IDs() []int {
 	ids := make([]int, 0, len(d))
 	for _, dev := range d {
 		ids = append(ids, dev.ID)
 	}
 	return ids
+}
+
+// Filter filters the device list based on the result of the callback.
+func (ds Devices) Filter(f func(d Device) bool) Devices {
+	filtered := make(Devices, 0, len(ds))
+	for _, device := range ds {
+		if f(device) {
+			filtered = append(filtered, device)
+		}
+	}
+	return filtered
+}
+
+// MatchName filters the device list by devices with a System Name matching the regex pattern.
+func (ds Devices) MatchName(p *regexp.Regexp) Devices {
+	f := func(d Device) bool {
+		return p.MatchString(d.SystemName)
+	}
+	return ds.Filter(f)
 }
 
 type DeviceDetails struct {

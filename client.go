@@ -127,12 +127,21 @@ func (client *Client) Devices(df *deviceFilter) (Devices, error) {
 	if err != nil {
 		return nil, err
 	}
-	var devices []Device
+	var devices Devices
 	err = json.Unmarshal(res.Body(), &devices)
 	if err != nil {
 		return nil, err
 	}
 	return devices, nil
+}
+
+// SearchDevices finds devices with a System Name matching a regex pattern.
+func (client *Client) SearchDevices(name *regexp.Regexp, df *deviceFilter) (Devices, error) {
+	all, err := client.Devices(df)
+	if err != nil {
+		return nil, err
+	}
+	return all.MatchName(name), nil
 }
 
 // DeviceCustomFields retrieves custom fields for a device.
