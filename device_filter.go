@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/stellaraf/go-utils"
 )
 
 type statement [3]string
@@ -32,6 +34,10 @@ func (op Operator) String() string {
 	return string(op)
 }
 
+func (op Operator) IsSingle() bool {
+	return utils.SliceContains([]Operator{EQ, NEQ, BEFORE, AFTER}, op)
+}
+
 const EQ Operator = "eq"
 const NEQ Operator = "neq"
 const IN Operator = "in"
@@ -51,8 +57,8 @@ func NewDeviceFilter() *deviceFilter {
 	return &deviceFilter{items: []statement{}}
 }
 
-func stringifyValue(value []any) string {
-	if len(value) == 1 {
+func stringifyValue(op Operator, value []any) string {
+	if op.IsSingle() && len(value) == 1 {
 		return fmt.Sprint(value[0])
 	}
 	vals := make([]string, 0, len(value))
@@ -102,7 +108,7 @@ func (df *deviceFilter) add(item string, op Operator, value ...any) *deviceFilte
 	if (op == EQ || op == NEQ) && len(value) > 1 {
 		panic(fmt.Sprintf("%s may only be used with one value", op))
 	}
-	smt := statement{item, op.String(), stringifyValue(value)}
+	smt := statement{item, op.String(), stringifyValue(op, value)}
 	df.items = append(df.items, smt)
 	return df
 }

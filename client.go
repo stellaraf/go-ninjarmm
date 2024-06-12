@@ -219,10 +219,13 @@ func (client *Client) SetDeviceRole(deviceID int, roleID int) error {
 	return nil
 }
 
-// OSPatches retrieves an OS patch summary for an organization.
-func (client *Client) OSPatches(orgID int) (patchReport OSPatchReportQuery, err error) {
-	df := NewDeviceFilter().Org(EQ, orgID)
-	res, err := client.httpClient.R().SetQueryParam("df", df.Encode()).Get("/api/v2/queries/os-patches")
+// OSPatches retrieves an OS patch summary for devices matching a device filter.
+func (client *Client) OSPatches(df *deviceFilter) (patchReport OSPatchReportQuery, err error) {
+	req := client.httpClient.R()
+	if df != nil {
+		req.SetQueryParam("df", df.String())
+	}
+	res, err := req.Get("/api/v2/queries/os-patches")
 	if err != nil {
 		return
 	}
@@ -230,13 +233,13 @@ func (client *Client) OSPatches(orgID int) (patchReport OSPatchReportQuery, err 
 	return
 }
 
-// OSPatchReport retrieves a patch report for an organization.
-func (client *Client) OSPatchReport(orgId int) ([]OSPatchReportDetail, error) {
-	reports, err := client.OSPatches(orgId)
+// OSPatchReport retrieves a patch report for devices matching a device filter.
+func (client *Client) OSPatchReport(df *deviceFilter) ([]OSPatchReportDetail, error) {
+	reports, err := client.OSPatches(df)
 	if err != nil {
 		return nil, err
 	}
-	devicesToCollect := []int{}
+	devicesToCollect := make([]int, 0)
 	for _, report := range reports.Results {
 		if !utils.SliceContains(devicesToCollect, report.DeviceID) {
 			devicesToCollect = append(devicesToCollect, report.DeviceID)
@@ -252,14 +255,14 @@ func (client *Client) OSPatchReport(orgId int) ([]OSPatchReportDetail, error) {
 		deviceMap[deviceId] = device
 	}
 	if len(deviceMap) != len(devicesToCollect) {
-		err = fmt.Errorf("failed to collect device details for Organization '%d'", orgId)
+		err = fmt.Errorf("failed to collect details for devices matching filter '%s'", df.String())
 		return nil, err
 	}
 	patchReport := make([]OSPatchReportDetail, 0, len(reports.Results))
 	for _, report := range reports.Results {
 		device, hasKey := deviceMap[report.DeviceID]
 		if !hasKey {
-			err = fmt.Errorf("failed to get details for device '%d'", report.DeviceID)
+			err = fmt.Errorf("failed to get details for device %d", report.DeviceID)
 			return nil, err
 		}
 		result := OSPatchReportDetail{

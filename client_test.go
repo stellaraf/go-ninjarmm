@@ -62,13 +62,15 @@ func Test_NinjaRMMClient(t *testing.T) {
 
 	t.Run("os patches", func(t *testing.T) {
 		t.Parallel()
-		data, err := client.OSPatches(testData.OrgID)
+		df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, testData.OrgID)
+		data, err := client.OSPatches(df)
 		require.NoError(t, err)
 		assert.IsType(t, ninjarmm.OSPatchReportQuery{}, data)
 	})
 	t.Run("os patch report", func(t *testing.T) {
 		t.Parallel()
-		data, err := client.OSPatchReport(testData.OrgID)
+		df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, testData.OrgID)
+		data, err := client.OSPatchReport(df)
 		require.NoError(t, err)
 		assert.IsType(t, []ninjarmm.OSPatchReportDetail{}, data)
 	})
@@ -166,18 +168,29 @@ func TestClient_SoftwareInventory(t *testing.T) {
 }
 
 func TestClient_DevicesWithSoftware(t *testing.T) {
-	t.Parallel()
 	td, err := test.LoadTestData()
 	require.NoError(t, err)
-	df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, td.OrgID).Class(ninjarmm.EQ, ninjarmm.NodeClass_WINDOWS_SERVER)
 	client, err := initClient()
 	require.NoError(t, err)
-	devices, err := client.Devices(df)
-	require.NoError(t, err)
 	ninjarmm.DefaultQueryBatchSize = 10
-	results, err := client.DevicesWithSoftware(devices, regexp.MustCompile(td.SoftwareName))
-	require.NoError(t, err)
-	assert.True(t, len(results) > 5, fmt.Sprintf("result=%d != expected=>%d", len(results), 5))
+	t.Run("base", func(t *testing.T) {
+		t.Parallel()
+		df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, td.OrgID).Class(ninjarmm.EQ, ninjarmm.NodeClass_WINDOWS_SERVER)
+		devices, err := client.Devices(df)
+		require.NoError(t, err)
+		results, err := client.DevicesWithSoftware(devices, regexp.MustCompile(td.SoftwareName))
+		require.NoError(t, err)
+		assert.True(t, len(results) > 5, fmt.Sprintf("result=%d != expected=>%d", len(results), 5))
+	})
+	t.Run("single", func(t *testing.T) {
+		df := ninjarmm.NewDeviceFilter().ID(ninjarmm.IN, td.DeviceID)
+		devices, err := client.Devices(df)
+		require.NoError(t, err)
+		results, err := client.DevicesWithSoftware(devices, regexp.MustCompile(td.SoftwareName))
+		require.NoError(t, err)
+		assert.Len(t, results, 1)
+	})
+
 }
 
 func TestClient_SearchDevices(t *testing.T) {
