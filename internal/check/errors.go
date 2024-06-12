@@ -66,7 +66,7 @@ func ForError(response *resty.Response) (err error) {
 			case "error_description":
 				errorDetail = data[key]
 				break loop
-			case "error_message":
+			case "error_message", "errorMessage":
 				errorDetail = data[key]
 				break loop
 			case "error":
