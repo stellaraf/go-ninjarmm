@@ -354,19 +354,13 @@ func (client *Client) SoftwareInventory(filter *deviceFilter) ([]SoftwareInvento
 
 // DevicesWithSoftware retrieves the software inventory for a set of devices and returns the device
 // IDs for devices that have a specific software.
-func (client *Client) DevicesWithSoftware(pattern *regexp.Regexp, filter *deviceFilter) ([]int, error) {
-	all, err := client.Devices(filter)
-	if err != nil {
-		return nil, err
-	}
-	final := make([]int, 0, len(all))
-	chunks := utils.ChunkSlice(all, DefaultQueryBatchSize)
+func (client *Client) DevicesWithSoftware(devices Devices, pattern *regexp.Regexp) ([]int, error) {
+	final := make([]int, 0, len(devices))
+	chunks := utils.ChunkSlice(devices, DefaultQueryBatchSize)
 
-	n := 0
-	results, err := iter.MapErr(chunks, func(devices *[]Device) ([]int, error) {
-		n++
-		ids := make([]int, 0, len(*devices))
-		for _, d := range *devices {
+	results, err := iter.MapErr(chunks, func(filtered *[]Device) ([]int, error) {
+		ids := make([]int, 0, len(*filtered))
+		for _, d := range *filtered {
 			d := d
 			ids = append(ids, d.ID)
 		}
@@ -375,7 +369,7 @@ func (client *Client) DevicesWithSoftware(pattern *regexp.Regexp, filter *device
 		if err != nil {
 			return nil, err
 		}
-		r := make([]int, 0, len(*devices))
+		r := make([]int, 0, len(*filtered))
 		for _, pkg := range inventory {
 			pkg := pkg
 			did := int(pkg.DeviceID)

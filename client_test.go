@@ -172,8 +172,10 @@ func TestClient_DevicesWithSoftware(t *testing.T) {
 	df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, td.OrgID).Class(ninjarmm.EQ, ninjarmm.NodeClass_WINDOWS_SERVER)
 	client, err := initClient()
 	require.NoError(t, err)
+	devices, err := client.Devices(df)
+	require.NoError(t, err)
 	ninjarmm.DefaultQueryBatchSize = 10
-	results, err := client.DevicesWithSoftware(regexp.MustCompile(td.SoftwareName), df)
+	results, err := client.DevicesWithSoftware(devices, regexp.MustCompile(td.SoftwareName))
 	require.NoError(t, err)
 	assert.True(t, len(results) > 5, fmt.Sprintf("result=%d != expected=>%d", len(results), 5))
 }
