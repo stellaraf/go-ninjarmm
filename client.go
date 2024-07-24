@@ -396,7 +396,8 @@ func (client *Client) DevicesWithSoftware(devices Devices, pattern *regexp.Regex
 func New(
 	baseURL, clientID, clientSecret string,
 	encryption *string,
-	tokenCache TokenCache) (*Client, error) {
+	tokenCache TokenCache,
+) (*Client, error) {
 
 	auth, err := auth.New(
 		baseURL,

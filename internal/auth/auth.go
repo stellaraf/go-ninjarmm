@@ -31,7 +31,7 @@ type AccessToken struct {
 }
 
 func (token *AccessToken) Expiry() time.Duration {
-	return time.Duration(token.ExpiresIn) * time.Second
+	return time.Duration(token.ExpiresIn-60) * time.Second
 }
 
 type Auth struct {
@@ -56,7 +56,7 @@ func (auth *Auth) GetRefreshToken() (string, error) {
 	if rawToken != "" && auth.encryption {
 		return encryption.Decrypt(auth.encryptionPassphrase, rawToken)
 	}
-	return "", nil
+	return rawToken, nil
 }
 
 func (auth *Auth) GetNewToken() (*AccessToken, error) {
@@ -78,10 +78,10 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 	req := auth.httpClient.R()
 	req.SetHeader("content-type", "application/x-www-form-urlencoded")
 	res, err := req.SetBody(q.Encode()).Post("/ws/oauth/token")
-
 	if err != nil {
 		return nil, err
 	}
+
 	err = check.ForError(res)
 	if err != nil {
 		return nil, err
