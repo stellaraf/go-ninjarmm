@@ -45,7 +45,7 @@ func Test_NinjaRMMClient(t *testing.T) {
 		t.Parallel()
 		data, err := client.Device(testData.DeviceID)
 		require.NoError(t, err)
-		assert.IsType(t, ninjarmm.DeviceDetails{}, data)
+		assert.IsType(t, &ninjarmm.DeviceDetails{}, data)
 	})
 	t.Run("device custom fields", func(t *testing.T) {
 		t.Parallel()
@@ -57,7 +57,7 @@ func Test_NinjaRMMClient(t *testing.T) {
 		t.Parallel()
 		data, err := client.Organization(testData.OrgID)
 		require.NoError(t, err)
-		assert.IsType(t, ninjarmm.Organization{}, data)
+		assert.IsType(t, &ninjarmm.Organization{}, data)
 	})
 
 	t.Run("os patches", func(t *testing.T) {
@@ -65,7 +65,7 @@ func Test_NinjaRMMClient(t *testing.T) {
 		df := ninjarmm.NewDeviceFilter().Org(ninjarmm.EQ, testData.OrgID)
 		data, err := client.OSPatches(df)
 		require.NoError(t, err)
-		assert.IsType(t, ninjarmm.OSPatchReportQuery{}, data)
+		assert.IsType(t, &ninjarmm.OSPatchReportQuery{}, data)
 	})
 	t.Run("os patch report", func(t *testing.T) {
 		t.Parallel()
@@ -112,7 +112,7 @@ func Test_NinjaRMMClient(t *testing.T) {
 		disabledFeatures := []string{"ALERTS"}
 		err := client.ScheduleMaintenance(testData.DeviceID, start, end, disabledFeatures)
 		assert.Error(t, err)
-		assert.ErrorContains(t, err, fmt.Sprint(testData.DeviceID))
+		assert.ErrorIs(t, &ninjarmm.Error{Message: "node_maintenance_date_in_past"}, err)
 	})
 	t.Run("roles all", func(t *testing.T) {
 		t.Parallel()

@@ -8,8 +8,11 @@ import (
 	"time"
 
 	"github.com/stellaraf/go-ninjarmm/internal/auth"
+	"github.com/stellaraf/go-ninjarmm/internal/types"
 	"github.com/stellaraf/go-ninjarmm/internal/util"
 )
+
+type Error = types.Error
 
 var DefaultQueryBatchSize int = 100
 

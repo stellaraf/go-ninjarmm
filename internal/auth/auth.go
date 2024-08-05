@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/stellaraf/go-ninjarmm/internal/check"
+	"github.com/stellaraf/go-ninjarmm/internal/types"
 	"github.com/stellaraf/go-utils/encryption"
 )
 
@@ -76,15 +76,17 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 	}
 
 	req := auth.httpClient.R()
-	req.SetHeader("content-type", "application/x-www-form-urlencoded")
-	res, err := req.SetBody(q.Encode()).Post("/ws/oauth/token")
+	req.
+		SetHeader("content-type", "application/x-www-form-urlencoded").
+		SetBody(q.Encode()).
+		SetError(&types.Error{})
+	res, err := req.Post("/ws/oauth/token")
 	if err != nil {
 		return nil, err
 	}
 
-	err = check.ForError(res)
-	if err != nil {
-		return nil, err
+	if res.IsError() {
+		return nil, res.Error().(*types.Error)
 	}
 
 	bodyBytes := res.Body()
@@ -100,11 +102,6 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 	}
 	if token == nil {
 		err = fmt.Errorf("failed to get new NinjaRMM access token")
-		return nil, err
-	}
-	if check.IsGenericError(token) || check.IsRequestError(token) {
-		errorDetail := check.GetNinjaRMMError(token)
-		err = fmt.Errorf("failed to get new NinjaRMM access token due to error: '%s'", errorDetail)
 		return nil, err
 	}
 	return token, nil

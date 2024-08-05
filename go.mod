@@ -8,6 +8,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stellaraf/go-utils v0.1.7
 	github.com/stretchr/testify v1.9.0
+	go.stellar.af/go-utils v0.2.1
 )
 
 require (

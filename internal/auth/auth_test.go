@@ -5,6 +5,7 @@ import (
 
 	"github.com/stellaraf/go-ninjarmm/internal/auth"
 	"github.com/stellaraf/go-ninjarmm/internal/test"
+	"github.com/stellaraf/go-ninjarmm/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,5 +42,15 @@ func Test_Auth(t *testing.T) {
 		token, err := Auth.GetRefreshToken()
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
+	})
+	t.Run("auth error", func(t *testing.T) {
+		t.Parallel()
+		env, err := test.LoadEnv()
+		require.NoError(t, err)
+		tc := test.NewTokenCache()
+		a, err := auth.New(env.BaseURL, "invalid", "invalid", nil, tc)
+		require.NoError(t, err)
+		_, err = a.GetAccessToken()
+		assert.IsType(t, &types.Error{}, err)
 	})
 }

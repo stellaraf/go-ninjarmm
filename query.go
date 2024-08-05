@@ -2,9 +2,6 @@ package ninjarmm
 
 import (
 	"fmt"
-
-	"github.com/stellaraf/go-ninjarmm/internal/check"
-	"github.com/stellaraf/go-ninjarmm/internal/types"
 )
 
 type QueryClient[T any] struct {
@@ -22,7 +19,7 @@ func NewQueryClient[T any](client *Client, batchSize int) *QueryClient[T] {
 func (qc *QueryClient[T]) Do(path string, query map[string]string) (*QueryResult[T], error) {
 	req := qc.base.httpClient.R().
 		SetResult(&QueryResult[T]{}).
-		SetError(&types.NinjaRMMAPIError{})
+		SetError(&Error{})
 
 	if query != nil {
 		req.SetQueryParams(query)
@@ -32,9 +29,8 @@ func (qc *QueryClient[T]) Do(path string, query map[string]string) (*QueryResult
 	if err != nil {
 		return nil, err
 	}
-	err = check.ForError(res)
-	if err != nil {
-		return nil, err
+	if res.IsError() {
+		return nil, res.Error().(*Error)
 	}
 	data, ok := res.Result().(*QueryResult[T])
 	if !ok {

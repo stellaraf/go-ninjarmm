@@ -1,7 +1,6 @@
 package ninjarmm
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -11,8 +10,6 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sourcegraph/conc/iter"
 	"github.com/stellaraf/go-ninjarmm/internal/auth"
-	"github.com/stellaraf/go-ninjarmm/internal/check"
-	"github.com/stellaraf/go-ninjarmm/internal/types"
 	"github.com/stellaraf/go-ninjarmm/internal/util"
 	"github.com/stellaraf/go-utils"
 )
@@ -21,18 +18,6 @@ type Client struct {
 	auth       *auth.Auth
 	baseURL    string
 	httpClient *resty.Client
-}
-
-func handleResponse(response *resty.Response, data any) error {
-	err := check.ForError(response)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(response.Body(), data)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // Location retrieves a location's details.
@@ -52,70 +37,77 @@ func (client *Client) Location(orgID, locID int) (*Location, error) {
 
 // OrganizationLocations retrieves all locations belonging to an organization.
 func (client *Client) OrganizationLocations(orgID int) ([]Location, error) {
-	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d/locations", orgID))
+	res, err := client.httpClient.R().
+		SetResult([]Location{}).
+		SetError(&Error{}).
+		Get(fmt.Sprintf("/api/v2/organization/%d/locations", orgID))
 	if err != nil {
 		return nil, err
 	}
-	var locations []Location
-	err = handleResponse(res, &locations)
-	if err != nil {
-		return nil, err
+	if res.IsError() {
+		return nil, res.Error().(*Error)
 	}
-	return locations, nil
+	return *res.Result().(*[]Location), nil
 }
 
 // OrganizationDevices retrieves all devices belonging to an organization.
 func (client *Client) OrganizationDevices(orgID int) ([]Device, error) {
-	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d/devices", orgID))
+	res, err := client.httpClient.R().
+		SetResult([]Device{}).
+		SetError(&Error{}).
+		Get(fmt.Sprintf("/api/v2/organization/%d/devices", orgID))
 	if err != nil {
 		return nil, err
 	}
-	var devices []Device
-	err = handleResponse(res, &devices)
-	if err != nil {
-		return nil, err
+	if res.IsError() {
+		return nil, res.Error().(*Error)
 	}
-	return devices, nil
+	return *res.Result().(*[]Device), nil
 }
 
 // Organizations retrieves a summary for all organizations.
 func (client *Client) Organizations() ([]OrganizationSummary, error) {
-	res, err := client.httpClient.R().Get("/api/v2/organizations")
+	res, err := client.httpClient.R().
+		SetResult([]OrganizationSummary{}).
+		SetError(&Error{}).
+		Get("/api/v2/organizations")
 	if err != nil {
 		return nil, err
 	}
-	var orgs []OrganizationSummary
-	err = handleResponse(res, &orgs)
-	if err != nil {
-		return nil, err
+	if res.IsError() {
+		return nil, res.Error().(*Error)
 	}
-	return orgs, nil
+	return *res.Result().(*[]OrganizationSummary), nil
 }
 
 // Organization retrieves an organization's details.
-func (client *Client) Organization(id int) (org Organization, err error) {
-	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/organization/%d", id))
+func (client *Client) Organization(id int) (*Organization, error) {
+	res, err := client.httpClient.R().SetResult(Organization{}).SetError(&Error{}).Get(fmt.Sprintf("/api/v2/organization/%d", id))
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = handleResponse(res, &org)
-	return
+	if res.IsError() {
+		return nil, res.Error().(*Error)
+	}
+	return res.Result().(*Organization), nil
 }
 
 // Device retrieves a device's details.
-func (client *Client) Device(id int) (device DeviceDetails, err error) {
-	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/device/%d", id))
+func (client *Client) Device(id int) (*DeviceDetails, error) {
+	res, err := client.httpClient.R().SetResult(&DeviceDetails{}).SetError(&Error{}).Get(fmt.Sprintf("/api/v2/device/%d", id))
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = handleResponse(res, &device)
-	return
+	if res.IsError() {
+		return nil, res.Error().(*Error)
+	}
+	return res.Result().(*DeviceDetails), nil
 }
 
 // Devices retrieves all devices matching the filter. If no filter is provided, all devices will be
 // returned.
 func (client *Client) Devices(df *deviceFilter) (Devices, error) {
-	req := client.httpClient.R()
+	req := client.httpClient.R().SetResult(Devices{}).SetError(&Error{})
 	if df != nil {
 		req.SetQueryParam("df", df.String())
 	}
@@ -123,16 +115,10 @@ func (client *Client) Devices(df *deviceFilter) (Devices, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = check.ForError(res)
-	if err != nil {
-		return nil, err
+	if res.IsError() {
+		return nil, res.Error().(*Error)
 	}
-	var devices Devices
-	err = json.Unmarshal(res.Body(), &devices)
-	if err != nil {
-		return nil, err
-	}
-	return devices, nil
+	return *res.Result().(*Devices), nil
 }
 
 // SearchDevices finds devices with a System Name matching a regex pattern.
@@ -145,13 +131,18 @@ func (client *Client) SearchDevices(name *regexp.Regexp, df *deviceFilter) (Devi
 }
 
 // DeviceCustomFields retrieves custom fields for a device.
-func (client *Client) DeviceCustomFields(id int) (customFields map[string]any, err error) {
-	res, err := client.httpClient.R().Get(fmt.Sprintf("/api/v2/device/%d/custom-fields", id))
+func (client *Client) DeviceCustomFields(id int) (map[string]any, error) {
+	res, err := client.httpClient.R().
+		SetResult(map[string]any{}).
+		SetError(&Error{}).
+		Get(fmt.Sprintf("/api/v2/device/%d/custom-fields", id))
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = handleResponse(res, &customFields)
-	return
+	if res.IsError() {
+		return nil, res.Error().(*Error)
+	}
+	return *res.Result().(*map[string]any), nil
 }
 
 // Roles retrieves roles and optionally filters the results based on role name. The role name
@@ -163,16 +154,17 @@ func (client *Client) DeviceCustomFields(id int) (customFields map[string]any, e
 //	"Windows Server"
 //	"WINDOWS_SERVER"
 func (client *Client) Roles(filter ...string) ([]Role, error) {
-	req := client.httpClient.R().SetResult([]Role{})
+	req := client.httpClient.R().
+		SetResult([]Role{}).
+		SetError(&Error{})
 	res, err := req.Get("/api/v2/roles")
 	if err != nil {
 		return nil, err
 	}
-	var roles []Role
-	err = handleResponse(res, &roles)
-	if err != nil {
-		return nil, err
+	if res.IsError() {
+		return nil, res.Error().(*Error)
 	}
+	roles := *res.Result().(*[]Role)
 	if len(filter) != 0 {
 		filtered := make([]Role, 0, len(roles))
 		for _, f := range filter {
@@ -205,32 +197,31 @@ func (client *Client) Role(id int) (*Role, error) {
 func (client *Client) SetDeviceRole(deviceID int, roleID int) error {
 	b := make(map[string]int, 1)
 	b["nodeRoleId"] = roleID
-	req := client.httpClient.R().SetBody(b)
+	req := client.httpClient.R().SetBody(b).SetError(&Error{})
 	res, err := req.Patch(fmt.Sprintf("/api/v2/device/%d", deviceID))
 	if err != nil {
 		return err
 	}
 	if res.IsError() {
-		err = check.ForError(res)
-		if err != nil {
-			return err
-		}
+		return res.Error().(*Error)
 	}
 	return nil
 }
 
 // OSPatches retrieves an OS patch summary for devices matching a device filter.
-func (client *Client) OSPatches(df *deviceFilter) (patchReport OSPatchReportQuery, err error) {
-	req := client.httpClient.R()
+func (client *Client) OSPatches(df *deviceFilter) (*OSPatchReportQuery, error) {
+	req := client.httpClient.R().SetResult(OSPatchReportQuery{}).SetError(&Error{})
 	if df != nil {
 		req.SetQueryParam("df", df.String())
 	}
 	res, err := req.Get("/api/v2/queries/os-patches")
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = handleResponse(res, &patchReport)
-	return
+	if res.IsError() {
+		return nil, res.Error().(*Error)
+	}
+	return res.Result().(*OSPatchReportQuery), nil
 }
 
 // OSPatchReport retrieves a patch report for devices matching a device filter.
@@ -252,7 +243,7 @@ func (client *Client) OSPatchReport(df *deviceFilter) ([]OSPatchReportDetail, er
 		if err != nil {
 			return nil, err
 		}
-		deviceMap[deviceId] = device
+		deviceMap[deviceId] = *device
 	}
 	if len(deviceMap) != len(devicesToCollect) {
 		err = fmt.Errorf("failed to collect details for devices matching filter '%s'", df.String())
@@ -281,10 +272,10 @@ func (client *Client) OSPatchReport(df *deviceFilter) ([]OSPatchReportDetail, er
 }
 
 // CreateOrganization creates a new organization.
-func (client *Client) CreateOrganization(name string) (org Organization, err error) {
+func (client *Client) CreateOrganization(name string) (*Organization, error) {
 	orgs, err := client.Organizations()
 	if err != nil {
-		return
+		return nil, err
 	}
 	matchingOrgName := ""
 	matchingOrgID := 0
@@ -296,14 +287,16 @@ func (client *Client) CreateOrganization(name string) (org Organization, err err
 	}
 	if matchingOrgName != "" {
 		err = fmt.Errorf("object with name '%s' already exists (ID '%d'). A new object will not be created", matchingOrgName, matchingOrgID)
-		return
+		return nil, err
 	}
-	res, err := client.httpClient.R().SetBody(struct{ Name string }{Name: name}).Post("/v2/organizations")
+	res, err := client.httpClient.R().SetBody(struct{ Name string }{Name: name}).SetResult(&Organization{}).SetError(&Error{}).Post("/v2/organizations")
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = handleResponse(res, &org)
-	return
+	if res.IsError() {
+		return nil, res.Error().(*Error)
+	}
+	return res.Result().(*Organization), nil
 }
 
 // ScheduleMaintenance schedules a maintenance window for a device.
@@ -313,15 +306,13 @@ func (client *Client) ScheduleMaintenance(deviceID int, start, end time.Time, di
 		End:              end,
 		DisabledFeatures: disabledFeatures,
 	}
-	req := client.httpClient.R().SetError(&types.NinjaRMMPutError{}).SetBody(body)
+	req := client.httpClient.R().SetBody(body).SetError(&Error{})
 	res, err := req.Put(fmt.Sprintf("/api/v2/device/%d/maintenance", deviceID))
 	if err != nil {
 		return err
 	}
 	if res.IsError() {
-		parsed := res.Error().(*types.NinjaRMMPutError)
-		err = fmt.Errorf(parsed.GetErrorMessage(deviceID))
-		return err
+		return res.Error().(*Error)
 	}
 	return nil
 }
@@ -413,13 +404,16 @@ func New(
 		err = fmt.Errorf("failed to initialize authentication")
 		return nil, err
 	}
-	httpClient := resty.New()
-	httpClient.SetBaseURL(baseURL)
 	token, err := auth.GetAccessToken()
 	if err != nil {
 		return nil, err
 	}
-	httpClient.SetAuthToken(token)
+
+	httpClient := resty.New().
+		SetBaseURL(baseURL).
+		SetError(&Error{}).
+		SetAuthToken(token)
+
 	httpClient.AddRetryCondition(func(res *resty.Response, err error) bool {
 		return res.StatusCode() == http.StatusUnauthorized
 	})
