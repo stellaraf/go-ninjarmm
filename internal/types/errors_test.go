@@ -5,9 +5,9 @@ import (
 
 	"testing"
 
-	"github.com/stellaraf/go-ninjarmm/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.stellar.af/go-ninjarmm/internal/types"
 )
 
 func Test_Error(t *testing.T) {

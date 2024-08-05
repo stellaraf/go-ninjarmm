@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stellaraf/go-ninjarmm/internal/auth"
-	"github.com/stellaraf/go-ninjarmm/internal/types"
-	"github.com/stellaraf/go-ninjarmm/internal/util"
+	"go.stellar.af/go-ninjarmm/internal/auth"
+	"go.stellar.af/go-ninjarmm/internal/types"
+	"go.stellar.af/go-ninjarmm/internal/util"
 )
 
 type Error = types.Error

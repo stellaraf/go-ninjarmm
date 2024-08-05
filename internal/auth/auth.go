@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/stellaraf/go-ninjarmm/internal/types"
-	"github.com/stellaraf/go-utils/encryption"
+	"go.stellar.af/go-ninjarmm/internal/types"
+	"go.stellar.af/go-utils/encryption"
 )
 
 type TokenCache interface {

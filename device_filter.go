@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stellaraf/go-utils"
+	"go.stellar.af/go-utils/slice"
 )
 
 type statement [3]string
@@ -35,7 +35,7 @@ func (op Operator) String() string {
 }
 
 func (op Operator) IsSingle() bool {
-	return utils.SliceContains([]Operator{EQ, NEQ, BEFORE, AFTER}, op)
+	return slice.Contains([]Operator{EQ, NEQ, BEFORE, AFTER}, op)
 }
 
 const EQ Operator = "eq"
