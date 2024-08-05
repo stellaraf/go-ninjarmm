@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stellaraf/go-ninjarmm"
-	"github.com/stellaraf/go-ninjarmm/internal/test"
-	"github.com/stellaraf/go-ninjarmm/internal/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.stellar.af/go-ninjarmm"
+	"go.stellar.af/go-ninjarmm/internal/test"
+	"go.stellar.af/go-ninjarmm/internal/util"
 )
 
 func Test_Timestamp(t *testing.T) {

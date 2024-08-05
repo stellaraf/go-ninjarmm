@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stellaraf/go-ninjarmm"
 	"github.com/stretchr/testify/assert"
+	"go.stellar.af/go-ninjarmm"
 )
 
 func Test_DeviceFilter(t *testing.T) {

@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/sourcegraph/conc/iter"
-	"github.com/stellaraf/go-ninjarmm/internal/auth"
-	"github.com/stellaraf/go-ninjarmm/internal/util"
-	"github.com/stellaraf/go-utils"
+	"go.stellar.af/go-ninjarmm/internal/auth"
+	"go.stellar.af/go-ninjarmm/internal/util"
+	"go.stellar.af/go-utils/slice"
 )
 
 type Client struct {
@@ -232,7 +232,7 @@ func (client *Client) OSPatchReport(df *deviceFilter) ([]OSPatchReportDetail, er
 	}
 	devicesToCollect := make([]int, 0)
 	for _, report := range reports.Results {
-		if !utils.SliceContains(devicesToCollect, report.DeviceID) {
+		if !slice.Contains(devicesToCollect, report.DeviceID) {
 			devicesToCollect = append(devicesToCollect, report.DeviceID)
 		}
 	}
@@ -350,7 +350,7 @@ func (client *Client) SoftwareInventory(filter *deviceFilter) ([]SoftwareInvento
 // IDs for devices that have a specific software.
 func (client *Client) DevicesWithSoftware(devices Devices, pattern *regexp.Regexp) ([]int, error) {
 	final := make([]int, 0, len(devices))
-	chunks := utils.ChunkSlice(devices, DefaultQueryBatchSize)
+	chunks := slice.Chunk(devices, DefaultQueryBatchSize)
 
 	results, err := iter.MapErr(chunks, func(filtered *[]Device) ([]int, error) {
 		ids := make([]int, 0, len(*filtered))
@@ -380,7 +380,7 @@ func (client *Client) DevicesWithSoftware(devices Devices, pattern *regexp.Regex
 		batch := batch
 		final = append(final, batch...)
 	}
-	return utils.Set(final), nil
+	return slice.Dedup(final), nil
 }
 
 // New creates a new NinjaRMMClient.

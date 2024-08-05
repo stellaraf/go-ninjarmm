@@ -3,10 +3,10 @@ package ninjarmm_test
 import (
 	"testing"
 
-	"github.com/stellaraf/go-ninjarmm"
-	"github.com/stellaraf/go-ninjarmm/internal/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.stellar.af/go-ninjarmm"
+	"go.stellar.af/go-ninjarmm/internal/test"
 )
 
 func Test_Query(t *testing.T) {

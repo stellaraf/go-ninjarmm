@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/muesli/cache2go"
-	"github.com/stellaraf/go-utils/environment"
+	"go.stellar.af/go-utils/environment"
 )
 
 type TestData struct {
@@ -56,6 +56,10 @@ func (tc *TokenCache) GetRefreshToken() (string, error) {
 func (tc *TokenCache) SetRefreshToken(token string, expiresIn time.Duration) error {
 	tc.cache.Add("refresh-token", expiresIn, token)
 	return nil
+}
+
+func (tc *TokenCache) Clear() {
+	tc.cache.Flush()
 }
 
 func LoadEnv() (env Environment, err error) {

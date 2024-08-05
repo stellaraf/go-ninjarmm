@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stellaraf/go-ninjarmm"
-	"github.com/stellaraf/go-ninjarmm/internal/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.stellar.af/go-ninjarmm"
+	"go.stellar.af/go-ninjarmm/internal/test"
 )
 
 func initClient() (client *ninjarmm.Client, err error) {

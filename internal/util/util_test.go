@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stellaraf/go-ninjarmm/internal/util"
 	"github.com/stretchr/testify/assert"
+	"go.stellar.af/go-ninjarmm/internal/util"
 )
 
 func Test_TimeToFractional(t *testing.T) {
