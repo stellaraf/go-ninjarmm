@@ -86,7 +86,12 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 	}
 
 	if res.IsError() {
-		return nil, res.Error().(*types.Error)
+		err := res.Error().(*types.Error)
+		if refreshToken != "" && err.Message == "invalid_token" {
+			auth.SetRefreshToken("")
+			return auth.GetNewToken()
+		}
+		return nil, err
 	}
 
 	bodyBytes := res.Body()
