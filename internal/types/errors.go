@@ -2,10 +2,13 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"go.stellar.af/go-utils/mmap"
 )
+
+var ErrTokenCacheMiss = errors.New("token missing from cache")
 
 type Error struct {
 	Message     string         `json:"message"`

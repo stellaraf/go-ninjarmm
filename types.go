@@ -18,6 +18,8 @@ var DefaultQueryBatchSize int = 100
 
 type TokenCache = auth.TokenCache
 
+var ErrTokenCacheMiss = types.ErrTokenCacheMiss
+
 type Timestamp struct {
 	time.Time
 }

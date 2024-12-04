@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/muesli/cache2go"
+	"go.stellar.af/go-ninjarmm/internal/types"
 	"go.stellar.af/go-utils/environment"
 )
 
@@ -36,6 +37,9 @@ func (tc *TokenCache) GetAccessToken() (string, error) {
 		return "", nil
 	}
 	token := res.Data().(string)
+	if token == "" {
+		return "", types.ErrTokenCacheMiss
+	}
 	return token, nil
 }
 
@@ -50,6 +54,9 @@ func (tc *TokenCache) GetRefreshToken() (string, error) {
 		return "", nil
 	}
 	token := res.Data().(string)
+	if token == "" {
+		return "", types.ErrTokenCacheMiss
+	}
 	return token, nil
 }
 

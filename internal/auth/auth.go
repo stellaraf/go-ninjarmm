@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -61,7 +62,7 @@ func (auth *Auth) GetRefreshToken() (string, error) {
 
 func (auth *Auth) GetNewToken() (*AccessToken, error) {
 	refreshToken, err := auth.GetRefreshToken()
-	if err != nil {
+	if err != nil && !errors.Is(err, types.ErrTokenCacheMiss) {
 		return nil, err
 	}
 	q := url.Values{}
@@ -114,7 +115,7 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 
 func (auth *Auth) GetAccessToken() (string, error) {
 	cachedToken, err := auth.tokenCache.GetAccessToken()
-	if err != nil {
+	if err != nil && !errors.Is(err, types.ErrTokenCacheMiss) {
 		return "", err
 	}
 	if cachedToken == "" {
