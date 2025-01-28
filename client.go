@@ -35,6 +35,25 @@ func (client *Client) Location(orgID, locID int) (*Location, error) {
 	return nil, err
 }
 
+// LocationCustomFields retrieve's a location's custom fields.
+func (client *Client) LocationCustomFields(orgID, locID int) (map[string]any, error) {
+	res, err := client.httpClient.R().
+		SetResult(map[string]any{}).
+		SetError(Error{}).
+		Get(fmt.Sprintf("/api/v2/organization/%d/location/%d/custom-fields", orgID, locID))
+	if err != nil {
+		return nil, err
+	}
+	if res.IsError() {
+		return nil, res.Error().(*Error)
+	}
+	m := res.Result().(*map[string]any)
+	if m == nil {
+		return nil, fmt.Errorf("location %d (organization %d) has no custom fields", locID, orgID)
+	}
+	return *m, nil
+}
+
 // OrganizationLocations retrieves all locations belonging to an organization.
 func (client *Client) OrganizationLocations(orgID int) ([]Location, error) {
 	res, err := client.httpClient.R().

@@ -102,6 +102,13 @@ func Test_NinjaRMMClient(t *testing.T) {
 		assert.IsType(t, &ninjarmm.Location{}, data)
 		assert.Equal(t, testData.LocationID, data.ID)
 	})
+	t.Run("location custom fields", func(t *testing.T) {
+		t.Parallel()
+		data, err := client.LocationCustomFields(testData.OrgID, testData.LocationID)
+		require.NoError(t, err)
+		assert.IsType(t, map[string]any{}, data)
+		assert.True(t, len(data) > 0)
+	})
 	t.Run("maintenance", func(t *testing.T) {
 		t.Parallel()
 		start := time.Now().Add(time.Hour)
