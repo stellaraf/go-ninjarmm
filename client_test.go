@@ -59,6 +59,13 @@ func Test_NinjaRMMClient(t *testing.T) {
 		require.NoError(t, err)
 		assert.IsType(t, &ninjarmm.Organization{}, data)
 	})
+	t.Run("organization custom fields", func(t *testing.T) {
+		t.Parallel()
+		data, err := client.OrganizationCustomFields(testData.OrgID)
+		require.NoError(t, err)
+		assert.IsType(t, map[string]any{}, data)
+		assert.True(t, len(data) > 0, "custom fields are empty")
+	})
 
 	t.Run("os patches", func(t *testing.T) {
 		t.Parallel()

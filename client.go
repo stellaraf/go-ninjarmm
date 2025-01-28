@@ -92,6 +92,25 @@ func (client *Client) Organization(id int) (*Organization, error) {
 	return res.Result().(*Organization), nil
 }
 
+// OrganizationCustomFields retrieves an organization's custom fields.
+func (client *Client) OrganizationCustomFields(id int) (map[string]any, error) {
+	res, err := client.httpClient.R().
+		SetResult(map[string]any{}).
+		SetError(Error{}).
+		Get(fmt.Sprintf("/api/v2/organization/%d/custom-fields", id))
+	if err != nil {
+		return nil, err
+	}
+	if res.IsError() {
+		return nil, res.Error().(*Error)
+	}
+	m := res.Result().(*map[string]any)
+	if m == nil {
+		return nil, fmt.Errorf("organization %d has no custom fields", id)
+	}
+	return *m, nil
+}
+
 // Device retrieves a device's details.
 func (client *Client) Device(id int) (*DeviceDetails, error) {
 	res, err := client.httpClient.R().SetResult(&DeviceDetails{}).SetError(&Error{}).Get(fmt.Sprintf("/api/v2/device/%d", id))
