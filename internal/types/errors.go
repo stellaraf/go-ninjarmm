@@ -22,7 +22,7 @@ func (e Error) Error() string {
 }
 
 func (e Error) Unwrap() error {
-	return fmt.Errorf(e.Message)
+	return errors.New(e.Message)
 }
 
 func (e Error) Is(err error) bool {

@@ -52,6 +52,7 @@ func (authT *Auth) RefreshTokenExpiry() time.Duration {
 func (auth *Auth) GetRefreshToken() (string, error) {
 	rawToken, err := auth.tokenCache.GetRefreshToken()
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to retrieve cached NinjaRMM refresh token"))
 		return "", err
 	}
 	if rawToken != "" && auth.encryption {
@@ -65,9 +66,11 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 	if err != nil && !errors.Is(err, types.ErrTokenCacheMiss) {
 		return nil, err
 	}
+
 	q := url.Values{}
 	q.Set("client_id", auth.clientID)
 	q.Set("client_secret", auth.clientSecret)
+
 	if refreshToken != "" {
 		q.Set("grant_type", "refresh_token")
 		q.Set("refresh_token", refreshToken)
@@ -76,21 +79,24 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 		q.Set("scope", "monitoring management control offline_access")
 	}
 
-	req := auth.httpClient.R()
-	req.
+	req := auth.httpClient.R().
 		SetHeader("content-type", "application/x-www-form-urlencoded").
 		SetBody(q.Encode()).
 		SetError(&types.Error{})
+
 	res, err := req.Post("/ws/oauth/token")
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to request new NinjaRMM access token"))
 		return nil, err
 	}
 
 	if res.IsError() {
 		err := res.Error().(*types.Error)
-		if refreshToken != "" && err.Message == "invalid_token" {
-			auth.SetRefreshToken("")
-			return auth.GetNewToken()
+		if refreshToken != "" {
+			if err.Message == "invalid_token" || err.Message == "expired_token" {
+				auth.SetRefreshToken("")
+				return auth.GetNewToken()
+			}
 		}
 		return nil, err
 	}
@@ -98,16 +104,17 @@ func (auth *Auth) GetNewToken() (*AccessToken, error) {
 	bodyBytes := res.Body()
 	if res.StatusCode() >= 400 {
 		errorDetail := string(bodyBytes)
-		err = fmt.Errorf("failed to request new NinjaRMM access token due to %d error: '%s'", res.StatusCode(), errorDetail)
+		err := fmt.Errorf("failed to request new NinjaRMM access token due to %d error: '%s'", res.StatusCode(), errorDetail)
 		return nil, err
 	}
 	var token *AccessToken
 	err = json.Unmarshal(bodyBytes, &token)
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to parse NinjaRMM access token response"))
 		return nil, err
 	}
 	if token == nil {
-		err = fmt.Errorf("failed to get new NinjaRMM access token")
+		err := errors.New("failed to get new NinjaRMM access token")
 		return nil, err
 	}
 	return token, nil
@@ -124,7 +131,7 @@ func (auth *Auth) GetAccessToken() (string, error) {
 			return "", err
 		}
 		if newToken == nil {
-			err = fmt.Errorf("failed to retrieve new access token")
+			err := errors.New("failed to retrieve new NinjaRMM access token")
 			return "", err
 		}
 		err = auth.CacheNewToken(newToken)
@@ -155,16 +162,19 @@ func (auth *Auth) SetRefreshToken(value string) error {
 	if auth.encryption {
 		encryptedToken, err := encryption.Encrypt(value, auth.encryptionPassphrase)
 		if err != nil {
+			err := errors.Join(err, errors.New("failed to encrypt NinjaRMM refresh token"))
 			return err
 		}
 		err = auth.tokenCache.SetRefreshToken(encryptedToken, auth.RefreshTokenExpiry())
 		if err != nil {
+			err := errors.Join(err, errors.New("failed to cache NinjaRMM refresh token"))
 			return err
 		}
 		return nil
 	}
 	err := auth.tokenCache.SetRefreshToken(value, auth.RefreshTokenExpiry())
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to cache NinjaRMM refresh token"))
 		return err
 	}
 	return nil
@@ -174,16 +184,19 @@ func (auth *Auth) SetAccessToken(token *AccessToken) error {
 	if auth.encryption {
 		encrypted, err := encryption.Encrypt(token.AccessToken, auth.encryptionPassphrase)
 		if err != nil {
+			err := errors.Join(err, errors.New("failed to encrypt NinjaRMM access token"))
 			return err
 		}
 		err = auth.tokenCache.SetAccessToken(encrypted, token.Expiry())
 		if err != nil {
+			err := errors.Join(err, errors.New("failed to cache NinjaRMM access token"))
 			return err
 		}
 		return nil
 	}
 	err := auth.tokenCache.SetAccessToken(token.AccessToken, token.Expiry())
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to cache NinjaRMM access token"))
 		return err
 	}
 	return nil

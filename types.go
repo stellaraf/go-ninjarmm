@@ -2,6 +2,7 @@ package ninjarmm
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
 	"regexp"
 	"strings"
@@ -28,6 +29,7 @@ func (ts *Timestamp) UnmarshalJSON(b []byte) error {
 	var raw float64
 	err := json.Unmarshal(b, &raw)
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to parse NinjaRMM timestamp"))
 		return err
 	}
 	sec, dec := math.Modf(raw)
@@ -49,10 +51,12 @@ func (d *InstallDate) UnmarshalJSON(b []byte) error {
 	var raw string
 	err := json.Unmarshal(b, &raw)
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to unmarshal NinjaRMM install date"))
 		return err
 	}
 	t, err := time.Parse("2006-01-02", raw)
 	if err != nil {
+		err := errors.Join(err, errors.New("failed to parse NinjaRMM install date"))
 		return err
 	}
 	d.Time = t
