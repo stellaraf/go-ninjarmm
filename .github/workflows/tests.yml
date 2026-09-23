@@ -4,8 +4,9 @@ on: [push, pull_request]
 jobs:
     tests:
         name: Tests
-        runs-on: ubuntu-latest
+        runs-on: codebuild-stellaraf-actions-public-${{ github.run_id }}-${{ github.run_attempt }}
         env:
+            GOPATH: ${{ runner.temp }}/go
             CLIENT_ID: "${{ secrets.CLIENT_ID }}"
             CLIENT_SECRET: "${{ secrets.CLIENT_SECRET }}"
             ENCRYPTION_PASSPHRASE: "${{ secrets.ENCRYPTION_PASSPHRASE }}"
