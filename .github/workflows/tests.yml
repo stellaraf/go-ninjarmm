@@ -4,7 +4,7 @@ on: [push, pull_request]
 jobs:
     tests:
         name: Tests
-        runs-on: codebuild-stellaraf-actions-public-${{ github.run_id }}-${{ github.run_attempt }}
+        runs-on: ubuntu-latest
         env:
             CLIENT_ID: "${{ secrets.CLIENT_ID }}"
             CLIENT_SECRET: "${{ secrets.CLIENT_SECRET }}"
